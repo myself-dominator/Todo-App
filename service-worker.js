@@ -3,7 +3,7 @@
 // Strategy: Cache-first, fallback to network
 // ============================================================
 
-const CACHE_NAME = '1.2.6.5';
+const CACHE_NAME = '1.2.6.6';
 
 const ASSETS_TO_CACHE = [
     '/',
@@ -69,6 +69,16 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
+                    // Stale-While-Revalidate: Update cache in background
+                    event.waitUntil(
+                        fetch(event.request).then((networkResponse) => {
+                            if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'error') {
+                                caches.open(CACHE_NAME).then((cache) => {
+                                    cache.put(event.request, networkResponse.clone());
+                                });
+                            }
+                        }).catch((err) => console.warn('[SW] Background update failed', err))
+                    );
                     return cachedResponse; // Cache hit — serve immediately
                 }
 

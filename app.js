@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shortcutsModal = document.getElementById('shortcuts-modal');
 
     // Mobile specific
-    const fabAdd = document.getElementById('fab-add'), bottomSheet = document.getElementById('bottom-sheet'), bottomSheetOverlay = document.getElementById('bottom-sheet-overlay'), inputSection = document.getElementById('input-section'), mobileInputContainer = document.getElementById('mobile-input-container'), ptrIndicator = document.getElementById('ptr-indicator');
+    const fabAdd = document.getElementById('fab-add'), bottomSheet = document.getElementById('bottom-sheet'), bottomSheetOverlay = document.getElementById('bottom-sheet-overlay'), inputSection = document.getElementById('input-section'), mobileInputContainer = document.getElementById('mobile-input-container');
 
     // Multi-select & Bulk
     let selectedTasks = new Set();
@@ -160,15 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .catch(err => { console.error('[Firestore] Undo failed:', err); showToast('Failed to restore task.', 'error'); });
                 deletedTask = null;
             }
-        });
-    }
-
-    // --- Overdue Shake ---
-    function triggerOverdueShake() {
-        document.querySelectorAll('.task-container.overdue').forEach(el => {
-            el.classList.remove('overdue-shake');
-            void el.offsetWidth;
-            el.classList.add('overdue-shake');
         });
     }
 
@@ -419,16 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fabAdd) fabAdd.addEventListener('click', toggleBottomSheet);
     if (bottomSheetOverlay) bottomSheetOverlay.addEventListener('click', toggleBottomSheet);
 
-    let ptrStartY = 0, ptrCurrentY = 0, isPtr = false;
-    window.addEventListener('touchstart', e => { if (window.scrollY === 0 && !document.querySelector('.swiping')) { ptrStartY = e.touches[0].clientY; isPtr = true; } }, { passive: true });
-    window.addEventListener('touchmove', e => {
-        if (!isPtr) return; ptrCurrentY = e.touches[0].clientY; let diff = ptrCurrentY - ptrStartY;
-        if (diff > 0 && diff < 150) ptrIndicator.style.height = `${diff}px`;
-    }, { passive: true });
-    window.addEventListener('touchend', e => {
-        if (!isPtr) return; isPtr = false; let diff = ptrCurrentY - ptrStartY; ptrIndicator.style.height = '0';
-        if (diff > 80) { if (navigator.vibrate) navigator.vibrate(50); renderAll(); }
-    });
+
 
     // --- Voice Input (Audio Recording) ---
     let mediaRecorder;
@@ -459,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
 
                 mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
                     const reader = new FileReader();
                     reader.readAsDataURL(audioBlob);
                     reader.onloadend = () => {
@@ -487,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('tasks').add({
             text, audioData: base64Audio, priority: prioritySelect.value,
             category: categorySelect.value, dueDate: finalDate, status: 'todo',
-            pinned: false, notified: false, subtasks: [], notes: '', emoji: null,
+            pinned: false, notified: false, remind: reminderCheck.checked, subtasks: [], notes: '', emoji: null,
             completedAt: null, createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
             if (navigator.vibrate) navigator.vibrate(50);
@@ -657,7 +639,6 @@ document.addEventListener('DOMContentLoaded', () => {
             subtasks: [], notes: '', emoji: null, completedAt: null,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
-            reminderCheck.checked = false;
             showToast('Task added successfully', 'success');
         })
           .catch(err => { console.error('[Firestore] Add task failed:', err); showToast('Failed to add task.', 'error'); });
@@ -719,39 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "Victory is near! Complete that task! 🏆"
     ];
 
-    function checkNotifications() {
-        if (!('Notification' in window) || Notification.permission !== 'granted') return;
-        const now = new Date();
-        tasks.forEach(task => {
-            if (task.dueDate && task.status !== 'done' && task.remind !== false) {
-                const dueTime = task.dueDate.includes('T') ? task.dueDate : task.dueDate + "T23:59:59";
-                const dDate = new Date(dueTime);
-                const diffMins = (dDate - now) / 60000;
-                
-                // Urgency levels
-                let shouldNotify = false;
-                let messagePrefix = "Task Reminder";
-                
-                if (diffMins > 0 && diffMins <= 15 && !task.notified) {
-                    shouldNotify = true;
-                } else if (task.priority === 'high' && diffMins > 0 && diffMins <= 60 && !task.highPriorityNotified) {
-                    // Extra notification for high priority tasks 1 hour before
-                    shouldNotify = true;
-                    messagePrefix = "⚠️ HIGH PRIORITY";
-                    db.collection('tasks').doc(task.id).update({ highPriorityNotified: true }).catch(() => {});
-                }
 
-                if (shouldNotify) {
-                    const motivation = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-                    new Notification(messagePrefix, { 
-                        body: `"${task.text}" is due soon. ${motivation}`,
-                        icon: 'icons/icon-192.png'
-                    });
-                    db.collection('tasks').doc(task.id).update({ notified: true }).catch(() => {});
-                }
-            }
-        });
-    }
 
 
 
@@ -842,34 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentView === 'analytics-view') renderAnalytics();
     }
 
-    function triggerBigCelebration() {
-        if (typeof confetti !== 'function') return;
-        const duration = 6 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-        const interval = setInterval(function() {
-            const timeLeft = animationEnd - Date.now();
-            if (timeLeft <= 0) return clearInterval(interval);
-
-            const particleCount = 50 * (timeLeft / duration);
-            // Side cannons
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
-            
-            // Middle burst
-            if (timeLeft > duration * 0.8) {
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']
-                });
-            }
-        }, 250);
-        
-        showToast("🔥 MASTERMIND! All tasks crushed! 🎉", "success");
-    }
 
     function updateRemainingCount() {
         const remainingBadgeAnalytic = document.getElementById('remaining-tasks-badge-analytics');
@@ -1036,8 +958,12 @@ document.addEventListener('DOMContentLoaded', () => {
             div.addEventListener('click', (e) => {
                 if (e.target === div && dateStr) {
                     dueDateInput.value = dateStr;
-                    taskInput.focus();
-                    if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
+                    const kanbanBtn = document.querySelector('[data-view="kanban-view"]');
+                    if (kanbanBtn) kanbanBtn.click();
+                    setTimeout(() => {
+                        taskInput.focus();
+                        if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
+                    }, 50);
                 }
             });
         }
@@ -1156,7 +1082,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let isOverdue = false;
         if (task.dueDate && new Date(task.dueDate.includes('T') ? task.dueDate : task.dueDate + "T23:59:59") < new Date() && task.status !== 'done') {
             li.classList.add('overdue'); isOverdue = true;
-            li.classList.add('overdue-shake');
         }
 
         // Multi-select & Open Detail Panel
@@ -1175,7 +1100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hover Preview
         li.addEventListener('mouseenter', e => { hoverTimeout = setTimeout(() => showPreview(task, e), 500); });
         li.addEventListener('mouseleave', () => { clearTimeout(hoverTimeout); hidePreview(); });
-        li.addEventListener('mousemove', e => { if (hoverPreview.classList.contains('visible')) updatePreviewPosition(e); });
 
         // Drag & Drop
         if (currentView === 'kanban-view') {
@@ -1262,6 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audioWrapper.addEventListener('click', e => e.stopPropagation());
             audioWrapper.addEventListener('mousedown', e => e.stopPropagation());
             audioWrapper.addEventListener('touchstart', e => e.stopPropagation());
+            audioWrapper.addEventListener('dragstart', e => { e.preventDefault(); e.stopPropagation(); });
             infoDiv.appendChild(audioWrapper);
         }
 

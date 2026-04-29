@@ -755,8 +755,7 @@ button,
     padding: 0;
     margin-bottom: 10px;
 }
-    flex-direction: column;
-    gap: 15px;
+
 /* Kanban Board Spacing */
 .kanban-board {
     display: flex;
@@ -1172,10 +1171,13 @@ button,
 
 .badge-card {
     background: var(--input-bg);
-    padding: 15px 25px;
-    border-radius: 12px;
+    padding: 25px 35px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
     text-align: center;
+    flex: 1;
+    min-width: 200px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
 .badge-title {
@@ -1188,11 +1190,12 @@ button,
 }
 
 .rate-badge {
-    font-size: 2rem;
-    font-weight: 700;
-    padding: 5px 15px;
-    border-radius: 8px;
+    font-size: 3rem;
+    font-weight: 800;
+    padding: 10px 20px;
+    border-radius: 12px;
     display: inline-block;
+    width: 100%;
 }
 
 .rate-badge.green {
@@ -1429,36 +1432,7 @@ button,
     gap: 12px;
 }
 
-/* Shake Overdue */
-.task-container.overdue-shake {
-    animation: shakeAnim 0.4s ease-in-out;
-}
 
-@keyframes shakeAnim {
-    0% {
-        transform: translateX(0);
-    }
-
-    20% {
-        transform: translateX(-4px);
-    }
-
-    40% {
-        transform: translateX(4px);
-    }
-
-    60% {
-        transform: translateX(-3px);
-    }
-
-    80% {
-        transform: translateX(3px);
-    }
-
-    100% {
-        transform: translateX(0);
-    }
-}
 
 /* SVG Checkbox + Ripple Animation */
 .svg-checkbox-wrapper {
@@ -1643,27 +1617,7 @@ button,
     font-size: 1.1rem;
 }
 
-/* Priority High Pulse */
-.task-container.priority-high .badge-pill:nth-child(1) {
-    animation: pulseHigh 2s infinite ease-in-out;
-}
 
-@keyframes pulseHigh {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-
-    50% {
-        transform: scale(1.1);
-        opacity: 0.7;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
 
 .task-actions {
     display: flex;
@@ -2317,20 +2271,20 @@ kbd {
     }
 
     .kanban-board {
-        flex-direction: column;
+        flex-direction: row;
         gap: 20px;
-        overflow: visible;
+        overflow-x: auto;
     }
 
     .kanban-col {
         min-height: 100px;
-        min-width: 0; /* Remove 300px constraint */
-        flex: none;   /* Grow with content */
+        min-width: 85vw; /* Keep desktop style side-by-side */
+        flex: none;
     }
     
     .kanban-list, .kanban-scroll-area {
-        flex: none;
-        overflow: visible;
+        flex: 1;
+        overflow-y: auto;
     }
 
     .calendar-grid {
@@ -2366,7 +2320,6 @@ kbd {
         flex-wrap: wrap;
     }
 
-@media (max-width: 768px) {
     .detail-panel {
         width: 100%;
         position: fixed;
