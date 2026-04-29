@@ -997,16 +997,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 1; i <= daysInMonth; i++) {
             const currentCellDate = new Date(currentYear, currentMonth, i);
             currentCellDate.setHours(0, 0, 0, 0);
-            
-            // Skip rendering days that have already passed
-            if (currentCellDate < todayDate) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'calendar-cell past-date';
-                emptyCell.style.opacity = '0.3'; // Visual hint that it's gone
-                emptyCell.style.pointerEvents = 'none';
-                grid.appendChild(emptyCell);
-                continue;
-            }
 
             const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const cell = createCalCell(i, false, isCurrentMonth && today.getDate() === i, dayStr);
@@ -1029,17 +1019,16 @@ document.addEventListener('DOMContentLoaded', () => {
         div.className = `calendar-cell ${isOther ? 'other-month' : ''} ${isToday ? 'today-cell' : ''} ${isPast ? 'past-date' : ''}`;
         div.innerHTML = `<span class="calendar-day-number">${dNum}</span>`;
         
-        if (!isPast) {
-            div.addEventListener('click', (e) => {
-                if (e.target === div && dateStr) {
-                    dueDateInput.value = dateStr;
-                    setTimeout(() => {
-                        taskInput.focus();
-                        if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
-                    }, 50);
-                }
-            });
-        }
+        div.addEventListener('click', (e) => {
+            if ((e.target === div || e.target.classList.contains('calendar-day-number')) && dateStr) {
+                dueDateInput.value = dateStr;
+                setTimeout(() => {
+                    taskInput.focus();
+                    if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
+                }, 50);
+            }
+        });
+        
         return div;
     }
 
@@ -1308,10 +1297,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!task) return;
             const updateData = {};
             const destListId = list.dataset.listId;
-            if (destListId === 'todo-today' && (!task.dueDate || !isTodayOrPast(task.dueDate))) {
-                updateData.dueDate = new Date().toISOString().split('T')[0];
-            } else if (destListId === 'todo-later' && isTodayOrPast(task.dueDate)) {
-                updateData.dueDate = '';
+            if (destListId === 'todo-today') {
+                if (!task.dueDate || !isTodayOrPast(task.dueDate)) updateData.dueDate = new Date().toISOString().split('T')[0];
+                if (task.category !== 'general') updateData.category = 'general';
+            } else if (destListId === 'todo-later') {
+                if (isTodayOrPast(task.dueDate)) updateData.dueDate = '';
+                if (task.category !== 'daily') updateData.category = 'daily';
             }
             if (task.status !== newStatus) {
                 updateData.status = newStatus;
