@@ -2423,3 +2423,151 @@ button, .nav-btn, .action-btn {
     transform: scale(0.98);
     filter: brightness(1.1);
 }
+
+/* ── Date Task Panel ──────────────────────────────────── */
+.date-panel-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    z-index: 1200;
+    transition: opacity 0.25s ease;
+}
+.date-panel-overlay.hidden { display: none; }
+
+.date-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-height: 80vh;
+    background: var(--kanban-bg);
+    border-radius: 28px 28px 0 0;
+    z-index: 1201;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px 32px;
+    gap: 18px;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.35);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.date-panel.hidden { display: none; }
+.date-panel.sliding-in { animation: slidePanelUp 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+@keyframes slidePanelUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+.date-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.date-panel-label {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-color);
+}
+.date-panel-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+.date-panel-close {
+    background: var(--input-bg);
+    border: none;
+    color: var(--text-color);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+}
+.date-panel-close:hover { background: var(--border-color); }
+
+.date-panel-add {
+    display: flex;
+    gap: 10px;
+}
+.date-panel-add input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.date-panel-add input:focus { border-color: var(--primary-color); }
+.date-panel-add button {
+    padding: 12px 22px;
+    border-radius: 14px;
+    background: var(--primary-color);
+    color: white;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: filter 0.2s;
+}
+.date-panel-add button:hover { filter: brightness(1.15); }
+
+.date-panel-tasks {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 45vh;
+}
+.date-panel-task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.date-panel-task-item:hover { border-color: var(--primary-color); background: rgba(99,102,241,0.06); }
+.date-panel-task-item.done-task { opacity: 0.5; text-decoration: line-through; }
+.dpt-priority-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.dpt-priority-dot.high  { background: #ef4444; }
+.dpt-priority-dot.medium{ background: #f59e0b; }
+.dpt-priority-dot.low   { background: #10b981; }
+.dpt-text {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+.dpt-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.07);
+    color: var(--text-muted);
+    text-transform: capitalize;
+}
+.date-panel-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 20px 0;
+}
+
+@media (min-width: 769px) {
+    .date-panel {
+        left: auto; right: 24px; bottom: 24px;
+        width: 380px;
+        border-radius: 24px;
+        max-height: 75vh;
+    }
+}

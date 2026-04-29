@@ -998,6 +998,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentCellDate = new Date(currentYear, currentMonth, i);
             currentCellDate.setHours(0, 0, 0, 0);
 
+            // Skip past days entirely — don't render them
+            if (currentCellDate < todayDate) continue;
+
             const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const cell = createCalCell(i, false, isCurrentMonth && today.getDate() === i, dayStr);
             tasks.filter(t => t.dueDate && t.dueDate.startsWith(dayStr) && t.status !== 'done').forEach(task => {
@@ -1021,20 +1024,120 @@ document.addEventListener('DOMContentLoaded', () => {
         
         div.addEventListener('click', (e) => {
             if ((e.target === div || e.target.classList.contains('calendar-day-number')) && dateStr) {
-                dueDateInput.value = dateStr;
-                setTimeout(() => {
-                    taskInput.focus();
-                    if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
-                }, 50);
+                openDatePanel(dateStr);
             }
         });
         
         return div;
     }
 
+    // ── Date Panel ──────────────────────────────────────────
+    function openDatePanel(dateStr) {
+        const panel = document.getElementById('date-panel');
+        const overlay = document.getElementById('date-panel-overlay');
+        const label = document.getElementById('date-panel-label');
+        const subtitle = document.getElementById('date-panel-subtitle');
+        const input = document.getElementById('date-panel-input');
+        if (!panel) return;
+
+        // Format date nicely
+        const d = new Date(dateStr + 'T00:00:00');
+        const isToday = d.toDateString() === new Date().toDateString();
+        label.textContent = isToday ? '📅 Today' : d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        subtitle.textContent = isToday ? 'Add or manage today\'s tasks' : `Tasks for ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+        // Populate tasks list
+        renderDatePanelTasks(dateStr);
+
+        // Store active date
+        panel.dataset.activeDate = dateStr;
+        input.value = '';
+
+        panel.classList.remove('hidden');
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => { panel.classList.add('sliding-in'); });
+        setTimeout(() => panel.classList.remove('sliding-in'), 350);
+        input.focus();
+    }
+
+    function renderDatePanelTasks(dateStr) {
+        const container = document.getElementById('date-panel-tasks');
+        if (!container) return;
+        container.innerHTML = '';
+        const dayTasks = tasks.filter(t => t.dueDate && t.dueDate.startsWith(dateStr));
+        if (dayTasks.length === 0) {
+            container.innerHTML = '<div class="date-panel-empty">No tasks yet — add one above!</div>';
+            return;
+        }
+        dayTasks.forEach(task => {
+            const item = document.createElement('div');
+            item.className = `date-panel-task-item ${task.status === 'done' ? 'done-task' : ''}`;
+            item.innerHTML = `
+                <div class="dpt-priority-dot ${task.priority || 'medium'}"></div>
+                <div class="dpt-text">${task.text}</div>
+                <div class="dpt-status">${task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done ✓' : 'To Do'}</div>
+            `;
+            item.addEventListener('click', () => { openDetailPanel(task.id); });
+            container.appendChild(item);
+        });
+    }
+
+    function closeDatePanel() {
+        const panel = document.getElementById('date-panel');
+        const overlay = document.getElementById('date-panel-overlay');
+        if (panel) panel.classList.add('hidden');
+        if (overlay) overlay.classList.add('hidden');
+    }
+
+    function setupDatePanel() {
+        document.getElementById('date-panel-close')?.addEventListener('click', closeDatePanel);
+        document.getElementById('date-panel-overlay')?.addEventListener('click', closeDatePanel);
+
+        const addBtn = document.getElementById('date-panel-add-btn');
+        const input = document.getElementById('date-panel-input');
+
+        const doAdd = () => {
+            const panel = document.getElementById('date-panel');
+            const dateStr = panel?.dataset.activeDate;
+            const text = input?.value.trim();
+            if (!text || !dateStr) return;
+            db.collection('tasks').add({
+                text,
+                priority: 'medium',
+                category: 'daily',
+                dueDate: dateStr,
+                status: 'todo',
+                pinned: false,
+                notified: false,
+                remind: false,
+                subtasks: [], notes: '', emoji: null,
+                completedAt: null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                input.value = '';
+                renderDatePanelTasks(dateStr);
+                showToast('Task added!', 'success');
+            }).catch(err => { console.error(err); showToast('Failed to add task.', 'error'); });
+        };
+
+        addBtn?.addEventListener('click', doAdd);
+        input?.addEventListener('keypress', e => { if (e.key === 'Enter') doAdd(); });
+    }
+    setupDatePanel();
+
     function renderAnalytics() {
         if (typeof Chart === 'undefined') return;
-        const total = tasks.length, done = tasks.filter(t => t.status === 'done').length, rate = total === 0 ? 0 : Math.round((done / total) * 100);
+
+        // --- Persistent completion counter ---
+        // Track cumulative completions in localStorage so deleting done tasks doesn't reset the count
+        const currentDone = tasks.filter(t => t.status === 'done').length;
+        const storedMax = parseInt(localStorage.getItem('analyticsMaxDone') || '0', 10);
+        const lifetimeDone = Math.max(currentDone, storedMax);
+        localStorage.setItem('analyticsMaxDone', lifetimeDone);
+
+        const activeTotal = tasks.filter(t => t.status !== 'done').length;
+        const lifetimeTotal = lifetimeDone + activeTotal;
+        const rate = lifetimeTotal === 0 ? 0 : Math.round((lifetimeDone / lifetimeTotal) * 100);
 
         const badge = document.getElementById('completion-badge');
         if (badge) {
