@@ -5,8 +5,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const dueTimeInput = document.getElementById('due-time');
     const prioritySelect = document.getElementById('priority-select');
     const categorySelect = document.getElementById('category-select');
-    const reminderCheck = document.getElementById('reminder-check');
     const addButton = document.getElementById('add-button');
+    
+    function updateSelectColor(el) {
+        if (!el) return;
+        el.classList.remove('bg-high', 'bg-medium', 'bg-low');
+        el.classList.add('bg-' + el.value);
+    }
+    if (prioritySelect) prioritySelect.addEventListener('change', () => updateSelectColor(prioritySelect));
     const navBtns = document.querySelectorAll('.nav-btn');
     const viewPanels = document.querySelectorAll('.view-panel');
     const micBtn = document.getElementById('mic-btn');
@@ -31,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Split Detail Panel
     const detailPanel = document.getElementById('detail-panel');
-    const dtTitle = document.getElementById('dt-title'), dtNotes = document.getElementById('dt-notes'), dtDate = document.getElementById('dt-date'), dtTime = document.getElementById('dt-time'), dtPriority = document.getElementById('dt-priority'), dtCategory = document.getElementById('dt-category'), dtReminder = document.getElementById('dt-reminder'), dtRemindTime = document.getElementById('dt-remind-time');
+    const dtTitle = document.getElementById('dt-title'), dtNotes = document.getElementById('dt-notes'), dtDate = document.getElementById('dt-date'), dtTime = document.getElementById('dt-time'), dtPriority = document.getElementById('dt-priority'), dtCategory = document.getElementById('dt-category'), dtRemindTime = document.getElementById('dt-remind-time');
     const dtSubtaskInput = document.getElementById('dt-subtask-input'), dtSubtaskAdd = document.getElementById('dt-subtask-add'), dtSubtasksList = document.getElementById('dt-subtasks-list');
     let activeDetailId = null;
 
@@ -218,9 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dtTime.value = task.dueTime || '';
         dtRemindTime.value = task.remindTime || '';
         dtPriority.value = task.priority; 
+        updateSelectColor(dtPriority);
         dtCategory.value = task.category || 'general';
-        const dtReminderCheck = document.getElementById('dt-reminder');
-        if (dtReminderCheck) dtReminderCheck.checked = task.remind || false;
         
         const dtEarlyRemind = document.getElementById('dt-early-remind');
         if (dtEarlyRemind) dtEarlyRemind.checked = task.earlyRemind || false;
@@ -257,13 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
         checkEarlyWarningVisibility();
     });
     dtRemindTime.addEventListener('change', (e) => updateDetailField('remindTime', e.target.value));
-    dtPriority.addEventListener('change', (e) => updateDetailField('priority', e.target.value));
+    dtPriority.addEventListener('change', (e) => {
+        updateSelectColor(e.target);
+        updateDetailField('priority', e.target.value);
+    });
     dtCategory.addEventListener('change', (e) => updateDetailField('category', e.target.value));
-    
-    const dtReminderCheck = document.getElementById('dt-reminder');
-    if (dtReminderCheck) {
-        dtReminderCheck.addEventListener('change', (e) => updateDetailField('remind', e.target.checked));
-    }
 
     const dtEarlyRemind = document.getElementById('dt-early-remind');
     if (dtEarlyRemind) {
@@ -469,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('tasks').add({
             text, audioData: base64Audio, priority: prioritySelect.value,
             category: categorySelect.value, dueDate: finalDate, status: 'todo',
-            pinned: false, notified: false, remind: reminderCheck.checked, subtasks: [], notes: '', emoji: null,
+            pinned: false, notified: false, remind: !!tVal, subtasks: [], notes: '', emoji: null,
             completedAt: null, createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
             if (navigator.vibrate) navigator.vibrate(50);
@@ -635,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection('tasks').add({
             text, priority: prioritySelect.value, category: categorySelect.value,
             dueDate: finalDate, status: 'todo', pinned: false, notified: false,
-            remind: reminderCheck.checked,
+            remind: !!tVal,
             subtasks: [], notes: '', emoji: null, completedAt: null,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
@@ -1292,34 +1295,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupNotifications() {
-        const notifyBtn = document.getElementById('enable-notifications-btn');
-        if (notifyBtn) {
-            // Hide button if already granted
-            if (Notification.permission === "granted") {
-                notifyBtn.style.display = 'none';
-            }
-
-            notifyBtn.addEventListener('click', () => {
-                if (!("Notification" in window)) {
-                    showToast("Notifications not supported.", "error");
-                    return;
+        if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    showToast("Notifications enabled! 🔔", "success");
                 }
-
-                // If already denied, we can't request again—the browser blocks it.
-                // We must tell the user to fix it in settings.
-                if (Notification.permission === "denied") {
-                    showToast("Permission was blocked. Please click the Lock 🔒 icon in your browser bar and select 'Allow' for Notifications.", "warning");
-                    return;
-                }
-
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        showToast("Notifications enabled! 🔔", "success");
-                        notifyBtn.style.display = 'none'; 
-                    } else if (permission === "denied") {
-                        showToast("Notifications denied. Please enable them in browser settings.", "warning");
-                    }
-                });
             });
         }
         setInterval(checkReminders, 60000);

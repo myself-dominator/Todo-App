@@ -2364,3 +2364,13 @@ button, .nav-btn, .action-btn {
     cursor: not-allowed;
     background: var(--bg-color);
 }
+
+/* Colourful Select Styles */
+.color-select { transition: all 0.3s ease; outline: none; }
+.color-select.bg-high { background-color: #ef4444 !important; color: white !important; font-weight: bold; border-color: #dc2626 !important; }
+.color-select.bg-medium { background-color: #f59e0b !important; color: white !important; font-weight: bold; border-color: #d97706 !important; }
+.color-select.bg-low { background-color: #10b981 !important; color: white !important; font-weight: bold; border-color: #059669 !important; }
+.color-select option { font-weight: bold; color: white !important; padding: 12px 15px; margin: 4px; }
+.color-select option[value="high"] { background-color: #ef4444 !important; }
+.color-select option[value="medium"] { background-color: #f59e0b !important; }
+.color-select option[value="low"] { background-color: #10b981 !important; }
