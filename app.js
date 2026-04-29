@@ -298,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dtPriority.value = task.priority; 
         updateSelectColor(dtPriority);
         dtCategory.value = task.category || 'general';
+        updateSelectColor(dtCategory);
         
         const dtEarlyRemind = document.getElementById('dt-early-remind');
         if (dtEarlyRemind) dtEarlyRemind.checked = task.earlyRemind || false;
@@ -327,8 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     dtTitle.addEventListener('input', (e) => updateDetailField('text', e.target.value));
-    dtNotes.addEventListener('input', (e) => updateDetailField('notes', e.target.value));
-    dtDate.addEventListener('change', (e) => updateDetailField('dueDate', e.target.value));
+    dtPriority.addEventListener('change', (e) => updateDetailField('priority', e.target.value));
+    dtCategory.addEventListener('change', (e) => updateDetailField('category', e.target.value));
     dtTime.addEventListener('change', (e) => {
         updateDetailField('dueTime', e.target.value);
         checkEarlyWarningVisibility();
@@ -648,8 +649,24 @@ document.addEventListener('DOMContentLoaded', () => {
     addButton.addEventListener('click', () => { addTask(); if (window.innerWidth <= 768 && bottomSheet.classList.contains('active')) toggleBottomSheet(); });
     taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
 
-    document.getElementById('prev-month').addEventListener('click', () => { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderAll(); });
-    document.getElementById('next-month').addEventListener('click', () => { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderAll(); });
+    document.getElementById('prev-month').addEventListener('click', () => {
+        const now = new Date();
+        if (currentYear === now.getFullYear() && currentMonth <= now.getMonth()) return;
+        currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderAll();
+        updatePrevMonthBtn();
+    });
+    document.getElementById('next-month').addEventListener('click', () => {
+        currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderAll();
+        updatePrevMonthBtn();
+    });
+    function updatePrevMonthBtn() {
+        const btn = document.getElementById('prev-month');
+        const now = new Date();
+        btn.disabled = (currentYear === now.getFullYear() && currentMonth <= now.getMonth());
+        btn.style.opacity = btn.disabled ? '0.3' : '';
+        btn.style.cursor = btn.disabled ? 'not-allowed' : '';
+    }
+    updatePrevMonthBtn();
 
     function customConfirm(message, onConfirm) {
         const modal = document.getElementById('confirm-modal');
@@ -944,7 +961,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sortTasks(allRenderItems).forEach(task => {
             let listKey = task.status;
             if (listKey === 'todo') {
-                if (task.category === 'general' || (task.dueDate && isTodayOrPast(task.dueDate))) {
+                if (task.dueDate && isTodayOrPast(task.dueDate)) {
+                    listKey = 'todo-today';
+                } else if (task.category === 'general') {
                     listKey = 'todo-today';
                 } else {
                     listKey = 'todo-later';
@@ -1003,11 +1022,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const cell = createCalCell(i, false, isCurrentMonth && today.getDate() === i, dayStr);
-            tasks.filter(t => t.dueDate && t.dueDate.startsWith(dayStr) && t.status !== 'done').forEach(task => {
+
+            // Sort by priority (high first) and cap at 3
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            const dayTasks = tasks
+                .filter(t => t.dueDate && t.dueDate.startsWith(dayStr) && t.status !== 'done')
+                .sort((a, b) => (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2));
+            const visibleTasks = dayTasks.slice(0, 3);
+            const extraCount = dayTasks.length - visibleTasks.length;
+
+            visibleTasks.forEach(task => {
                 const tDiv = document.createElement('div'); tDiv.className = `calendar-task status-${task.status} p-${task.priority}`; tDiv.textContent = task.text; tDiv.title = task.text;
                 tDiv.addEventListener('click', (e) => { e.stopPropagation(); openDetailPanel(task.id); });
                 cell.appendChild(tDiv);
             });
+            if (extraCount > 0) {
+                const more = document.createElement('div');
+                more.className = 'cal-more-chip';
+                more.textContent = `+${extraCount} more`;
+                cell.appendChild(more);
+            }
+
             grid.appendChild(cell);
         }
     }
@@ -1063,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('theme-toggle-btn')?.classList.add('panel-hidden');
         document.getElementById('shortcuts-btn')?.classList.add('panel-hidden');
         document.querySelector('.sidebar-footer')?.classList.add('panel-hidden');
+        document.getElementById('close-detail')?.classList.add('panel-hidden');
     }
 
     function renderDatePanelTasks(dateStr) {
@@ -1097,6 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('theme-toggle-btn')?.classList.remove('panel-hidden');
         document.getElementById('shortcuts-btn')?.classList.remove('panel-hidden');
         document.querySelector('.sidebar-footer')?.classList.remove('panel-hidden');
+        document.getElementById('close-detail')?.classList.remove('panel-hidden');
     }
 
     function setupDatePanel() {

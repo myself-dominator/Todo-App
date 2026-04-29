@@ -780,8 +780,11 @@ button,
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px; /* Increased gap between tasks */
+    gap: 14px;
     min-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 20px;
 }
 
 /* Detail Panel Styling Cleaned */
@@ -836,6 +839,7 @@ button,
     border-radius: 8px;
     border: 1px solid var(--border-color);
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .subtask-meta {
@@ -1017,23 +1021,12 @@ button,
     color: var(--primary-color);
 }
 
-.kanban-list {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 100px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
 .kanban-scroll-area {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    padding-right: 5px;
 }
 
 .kanban-scroll-area .kanban-list {
@@ -1254,8 +1247,15 @@ button,
 .task-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 0;
+    flex-shrink: 0; /* Prevents overlapping/squashing */
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.task-wrapper:hover {
+    transform: translateY(-2px);
+    z-index: 5;
 }
 
 .task-bg {
@@ -1433,8 +1433,9 @@ button,
 .task-main {
     display: flex;
     align-items: center;
-    padding: 14px;
+    padding: 16px; /* Slightly more padding */
     gap: 12px;
+    min-height: 60px; /* Ensure minimum height */
 }
 
 
@@ -2415,9 +2416,11 @@ button, .nav-btn, .action-btn {
     transition: transform 0.1s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-.custom-option.bg-high { background-color: #ef4444; }
-.custom-option.bg-medium { background-color: #f59e0b; }
-.custom-option.bg-low { background-color: #10b981; }
+.custom-option.bg-high, .custom-select.bg-high { background-color: #ef4444; border-color: #dc2626; }
+.custom-option.bg-medium, .custom-select.bg-medium { background-color: #f59e0b; border-color: #d97706; }
+.custom-option.bg-low, .custom-select.bg-low { background-color: #10b981; border-color: #059669; }
+.custom-option.bg-general, .custom-select.bg-general { background-color: #6366f1; border-color: #4f46e5; }
+.custom-option.bg-daily, .custom-select.bg-daily { background-color: #8b5cf6; border-color: #7c3aed; }
 
 .custom-option:hover {
     transform: scale(0.98);
@@ -2429,6 +2432,19 @@ button, .nav-btn, .action-btn {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.2s ease;
+}
+
+/* Calendar overflow chip */
+.cal-more-chip {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    background: rgba(99,102,241,0.12);
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-top: 2px;
+    text-align: center;
+    cursor: pointer;
 }
 
 /* ── Date Task Panel ──────────────────────────────────── */
