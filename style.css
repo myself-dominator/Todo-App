@@ -1170,52 +1170,56 @@ button,
 }
 
 .badge-card {
-    background: var(--input-bg);
-    padding: 25px 35px;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    text-align: center;
+    background: linear-gradient(145deg, var(--kanban-bg), var(--input-bg));
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: left;
     flex: 1;
     min-width: 200px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .badge-title {
     display: block;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 15px;
     font-weight: 600;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
 .rate-badge {
-    font-size: 3rem;
-    font-weight: 800;
-    padding: 10px 20px;
-    border-radius: 12px;
+    font-size: 4rem;
+    font-weight: 900;
+    padding: 0;
     display: inline-block;
-    width: 100%;
+    background: transparent;
+    line-height: 1;
 }
 
 .rate-badge.green {
     color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
 .rate-badge.amber {
     color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
 }
 
 .rate-badge.red {
     color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
 }
 
 .charts-container {
     display: flex;
-    gap: 20px;
+    gap: 25px;
     flex-wrap: wrap;
 }
 
@@ -1223,9 +1227,10 @@ button,
     flex: 1;
     min-width: 300px;
     background: var(--kanban-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 .chart-box h3 {
@@ -2365,12 +2370,58 @@ button, .nav-btn, .action-btn {
     background: var(--bg-color);
 }
 
-/* Colourful Select Styles */
-.color-select { transition: all 0.3s ease; outline: none; }
-.color-select.bg-high { background-color: #ef4444 !important; color: white !important; font-weight: bold; border-color: #dc2626 !important; }
-.color-select.bg-medium { background-color: #f59e0b !important; color: white !important; font-weight: bold; border-color: #d97706 !important; }
-.color-select.bg-low { background-color: #10b981 !important; color: white !important; font-weight: bold; border-color: #059669 !important; }
-.color-select option { font-weight: bold; color: white !important; padding: 12px 15px; margin: 4px; }
-.color-select option[value="high"] { background-color: #ef4444 !important; }
-.color-select option[value="medium"] { background-color: #f59e0b !important; }
-.color-select option[value="low"] { background-color: #10b981 !important; }
+/* Custom Dropdown Styling */
+.custom-select-wrapper {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+}
+.custom-select {
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+.custom-select.bg-high { background-color: #ef4444; border-color: #dc2626; }
+.custom-select.bg-medium { background-color: #f59e0b; border-color: #d97706; }
+.custom-select.bg-low { background-color: #10b981; border-color: #059669; }
+
+.custom-options {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    gap: 4px;
+}
+.custom-options.hidden {
+    display: none;
+}
+.custom-option {
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    transition: transform 0.1s ease;
+}
+.custom-option.bg-high { background-color: #ef4444; }
+.custom-option.bg-medium { background-color: #f59e0b; }
+.custom-option.bg-low { background-color: #10b981; }
+
+.custom-option:hover {
+    transform: scale(0.98);
+    filter: brightness(1.1);
+}

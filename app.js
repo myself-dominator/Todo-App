@@ -9,10 +9,82 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function updateSelectColor(el) {
         if (!el) return;
-        el.classList.remove('bg-high', 'bg-medium', 'bg-low');
-        el.classList.add('bg-' + el.value);
+        if (el.tagName === 'INPUT' && el.type === 'hidden') {
+            const wrapper = el.closest('.custom-select-wrapper');
+            if (wrapper) {
+                const display = wrapper.querySelector('.custom-select');
+                const opt = wrapper.querySelector(`.custom-option[data-value="${el.value}"]`);
+                if (display && opt) {
+                    display.className = `custom-select bg-${el.value}`;
+                    display.textContent = opt.textContent;
+                }
+            }
+        } else {
+            el.classList.remove('bg-high', 'bg-medium', 'bg-low');
+            el.classList.add('bg-' + el.value);
+        }
     }
-    if (prioritySelect) prioritySelect.addEventListener('change', () => updateSelectColor(prioritySelect));
+    
+    function setupCustomDropdowns() {
+        document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+            const display = wrapper.querySelector('.custom-select');
+            const optionsContainer = wrapper.querySelector('.custom-options');
+            const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+            const options = wrapper.querySelectorAll('.custom-option');
+
+            if(display) display.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = !optionsContainer.classList.contains('hidden');
+                document.querySelectorAll('.custom-options').forEach(c => c.classList.add('hidden')); 
+                if (!isOpen) optionsContainer.classList.remove('hidden');
+            });
+
+            options.forEach(opt => {
+                opt.addEventListener('mouseenter', () => {
+                    const val = opt.getAttribute('data-value');
+                    if(display) {
+                        display.className = `custom-select bg-${val}`;
+                        display.textContent = opt.textContent;
+                    }
+                });
+
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const val = opt.getAttribute('data-value');
+                    hiddenInput.value = val;
+                    if(display) {
+                        display.className = `custom-select bg-${val}`;
+                        display.textContent = opt.textContent;
+                    }
+                    optionsContainer.classList.add('hidden');
+                    hiddenInput.dispatchEvent(new Event('change'));
+                });
+            });
+
+            if(optionsContainer) optionsContainer.addEventListener('mouseleave', () => {
+                const val = hiddenInput.value;
+                const selectedOpt = wrapper.querySelector(`.custom-option[data-value="${val}"]`);
+                if (selectedOpt && display) {
+                    display.className = `custom-select bg-${val}`;
+                    display.textContent = selectedOpt.textContent;
+                }
+            });
+        });
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-options').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+                const display = wrapper.querySelector('.custom-select');
+                const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+                const selectedOpt = wrapper.querySelector(`.custom-option[data-value="${hiddenInput.value}"]`);
+                if (selectedOpt && display) {
+                    display.className = `custom-select bg-${hiddenInput.value}`;
+                    display.textContent = selectedOpt.textContent;
+                }
+            });
+        });
+    }
+    setupCustomDropdowns();
     const navBtns = document.querySelectorAll('.nav-btn');
     const viewPanels = document.querySelectorAll('.view-panel');
     const micBtn = document.getElementById('mic-btn');
@@ -961,8 +1033,6 @@ document.addEventListener('DOMContentLoaded', () => {
             div.addEventListener('click', (e) => {
                 if (e.target === div && dateStr) {
                     dueDateInput.value = dateStr;
-                    const kanbanBtn = document.querySelector('[data-view="kanban-view"]');
-                    if (kanbanBtn) kanbanBtn.click();
                     setTimeout(() => {
                         taskInput.focus();
                         if (window.innerWidth <= 768 && !bottomSheet.classList.contains('active')) toggleBottomSheet();
