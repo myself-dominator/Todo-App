@@ -2424,6 +2424,13 @@ button, .nav-btn, .action-btn {
     filter: brightness(1.1);
 }
 
+/* Hide elements covered by panels */
+.panel-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.2s ease;
+}
+
 /* ── Date Task Panel ──────────────────────────────────── */
 .date-panel-overlay {
     position: fixed; inset: 0;

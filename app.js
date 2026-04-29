@@ -1058,6 +1058,11 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(() => { panel.classList.add('sliding-in'); });
         setTimeout(() => panel.classList.remove('sliding-in'), 350);
         input.focus();
+
+        // Hide UI elements that may be covered by the panel
+        document.getElementById('theme-toggle-btn')?.classList.add('panel-hidden');
+        document.getElementById('shortcuts-btn')?.classList.add('panel-hidden');
+        document.querySelector('.sidebar-footer')?.classList.add('panel-hidden');
     }
 
     function renderDatePanelTasks(dateStr) {
@@ -1087,6 +1092,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('date-panel-overlay');
         if (panel) panel.classList.add('hidden');
         if (overlay) overlay.classList.add('hidden');
+
+        // Restore hidden UI elements
+        document.getElementById('theme-toggle-btn')?.classList.remove('panel-hidden');
+        document.getElementById('shortcuts-btn')?.classList.remove('panel-hidden');
+        document.querySelector('.sidebar-footer')?.classList.remove('panel-hidden');
     }
 
     function setupDatePanel() {
