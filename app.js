@@ -367,8 +367,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text || !activeDetailId) return;
         const task = tasks.find(t => t.id === activeDetailId);
         if (!task) return;
-        const subtasks = task.subtasks || [];
-        subtasks.push({ id: Date.now().toString(), text, done: false });
+        const subtasks = [...(task.subtasks || [])];
+        subtasks.push({ id: Date.now().toString(), text, done: false, status: 'todo' });
         db.collection('tasks').doc(activeDetailId).update({ subtasks })
             .then(() => { dtSubtaskInput.value = ''; })
             .catch(err => console.error('[Firestore] Add subtask failed:', err));
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSubtask(taskId, stId) {
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
-        const subtasks = task.subtasks.map(st => st.id === stId ? { ...st, done: !st.done } : st);
+        const subtasks = task.subtasks.map(st => st.id === stId ? { ...st, done: !st.done, status: !st.done ? 'done' : 'todo' } : st);
         
         const allDone = subtasks.every(st => st.done);
         const anyDone = subtasks.some(st => st.done);
@@ -570,57 +570,103 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Onboarding Tour ---
     function setupTour() {
         if (localStorage.getItem('onboardingDone') === 'true') return;
-        const tourOverlay = document.getElementById('tour-overlay'), tourTooltip = document.getElementById('tour-tooltip'), tourText = document.getElementById('tour-text');
+        const tourOverlay = document.getElementById('tour-overlay');
+        const tourTooltip = document.getElementById('tour-tooltip');
+        const tourText = document.getElementById('tour-text');
+        const tourNext = document.getElementById('tour-next');
+        const tourSkip = document.getElementById('tour-skip');
+
         const steps = [
-            { target: '#input-section', text: 'Add your tasks here. Date & time separate now!', placement: 'bottom' },
-            { target: '#sidebar', text: 'Navigate views and change themes here!', placement: 'top' },
-            { target: '#kanban-board', text: 'Ctrl+Click to multi-select. Hover 500ms to preview. Swipe on mobile!', placement: 'top' }
+            { target: null, text: "Welcome to MY Tasks! 👋 Let's get you set up in 3 quick steps.", action: 'Click Start', placement: 'center' },
+            { target: '#new-task', text: "Step 1: Try typing a task and clicking '+' to add it.", action: 'Add a task', placement: 'bottom' },
+            { target: '.theme-selector', text: "Step 2: Great! Now try clicking a color dot to change the theme.", action: 'Change theme', placement: 'top' },
+            { target: '.nav-btn[data-view="analytics-view"]', text: "Step 3: Finally, check your productivity analytics here.", action: 'View Analytics', placement: 'top' }
         ];
         let stepIdx = 0;
+        let activeListener = null;
 
         function showStep() {
-            if (stepIdx >= steps.length) { finishTour(); return; }
-            const step = steps[stepIdx]; const targetEl = document.querySelector(step.target);
-            if (!targetEl) { stepIdx++; showStep(); return; }
-            tourText.textContent = step.text; tourTooltip.setAttribute('data-placement', step.placement);
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (stepIdx >= steps.length) { 
+                finishTour(); 
+                return; 
+            }
             
-            // Wait for scroll to stabilize
-            setTimeout(() => {
-                const rect = targetEl.getBoundingClientRect();
-                let top, left;
-                if (step.placement === 'bottom') {
-                    top = rect.bottom + 15;
-                    left = Math.max(10, Math.min(window.innerWidth - 290, rect.left));
-                } else {
-                    top = rect.top - 180;
-                    left = Math.max(10, Math.min(window.innerWidth - 290, rect.left + rect.width / 2 - 140));
-                }
+            const step = steps[stepIdx];
+            const targetEl = step.target ? document.querySelector(step.target) : null;
+            
+            tourText.innerHTML = `<strong>${step.text}</strong>`;
+            tourTooltip.setAttribute('data-placement', step.placement);
+            
+            // Interaction logic
+            if (step.action === 'Click Start') {
+                tourNext.textContent = "Start";
+                tourNext.style.display = 'block';
+            } else {
+                tourNext.style.display = 'none'; // Hide next button, require interaction
+            }
 
-                if (top < 20) top = rect.bottom + 15;
-                if (top + 200 > window.innerHeight) top = rect.top - 180;
-                
-                tourTooltip.style.top = `${top}px`;
-                tourTooltip.style.left = `${left}px`;
-
-                document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); 
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
                 targetEl.classList.add('tour-highlight');
-            }, 500); // Increased delay for smoother transition
+                
+                // Position tooltip dynamically
+                setTimeout(() => {
+                    const rect = targetEl.getBoundingClientRect();
+                    const tooltipWidth = 300; 
+                    const tooltipHeight = tourTooltip.offsetHeight || 150;
+                    
+                    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                    left = Math.max(20, Math.min(window.innerWidth - tooltipWidth - 20, left));
+
+                    let top;
+                    if (step.placement === 'top') {
+                        top = rect.top - tooltipHeight - 25;
+                        if (top < 20) top = rect.bottom + 25;
+                    } else {
+                        top = rect.bottom + 25;
+                        if (top + tooltipHeight > window.innerHeight - 20) top = rect.top - tooltipHeight - 25;
+                    }
+
+                    tourTooltip.style.top = `${top}px`;
+                    tourTooltip.style.left = `${left}px`;
+                    tourTooltip.style.transform = 'none';
+                    tourTooltip.style.width = `${tooltipWidth}px`;
+                }, 600);
+
+                // Setup Interaction Tracking
+                window.activeTourAction = step.action;
+                window.onTourInteraction = () => {
+                    window.activeTourAction = null;
+                    window.onTourInteraction = null;
+                    stepIdx++; 
+                    showStep();
+                };
+            } else {
+                // Welcome step (centered)
+                tourTooltip.style.top = '50%';
+                tourTooltip.style.left = '50%';
+                tourTooltip.style.transform = 'translate(-50%, -50%)';
+            }
         }
 
-        function finishTour() { 
-            tourOverlay.classList.remove('active'); 
-            setTimeout(() => tourOverlay.classList.add('hidden'), 300); 
-            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); 
-            localStorage.setItem('onboardingDone', 'true'); 
+        function finishTour() {
+            tourOverlay.classList.remove('active');
+            setTimeout(() => tourOverlay.classList.add('hidden'), 300);
+            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+            localStorage.setItem('onboardingDone', 'true');
+            
+            // Grand Celebration
+            triggerBigCelebration();
+            showToast("Setup Complete! Enjoy your productivity. 🚀", "success");
         }
 
-        tourOverlay.classList.remove('hidden'); 
-        setTimeout(() => tourOverlay.classList.add('active'), 100); 
+        tourOverlay.classList.remove('hidden');
+        setTimeout(() => tourOverlay.classList.add('active'), 100);
         showStep();
 
-        document.getElementById('tour-next').onclick = () => { stepIdx++; showStep(); };
-        document.getElementById('tour-skip').onclick = finishTour;
+        tourNext.onclick = () => { stepIdx++; showStep(); };
+        tourSkip.onclick = finishTour;
     }
 
     // --- Core Logic ---
@@ -651,6 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             navBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentView = btn.dataset.view;
+            if (window.activeTourAction === 'View Analytics' && currentView === 'analytics-view') window.onTourInteraction();
             
             // Auto-close detail panel on view change
             if (detailPanel) detailPanel.classList.remove('active');
@@ -669,6 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             renderAll();
+            checkAllCompleted();
         });
     });
 
@@ -750,6 +798,11 @@ document.addEventListener('DOMContentLoaded', () => {
         taskInput.value = ''; dueDateInput.value = ''; dueTimeInput.value = '';
         document.getElementById('typing-indicator').classList.add('hidden');
         if (navigator.vibrate) navigator.vibrate(50);
+        // Tour Interaction Tracking
+        if (window.activeTourAction === 'Add a task') {
+            window.onTourInteraction();
+        }
+
         db.collection('tasks').add({
             text, priority: prioritySelect.value, category: categorySelect.value,
             dueDate: finalDate, status: 'todo', pinned: false, notified: false,
@@ -808,6 +861,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function triggerSmallConfetti(el) { if (typeof confetti !== 'function') return; const r = el.getBoundingClientRect(); confetti({ particleCount: 50, spread: 60, origin: { x: (r.left + r.width / 2) / window.innerWidth, y: (r.top + r.height / 2) / window.innerHeight }, zIndex: 9999 }); }
+
+    function triggerBigCelebration() {
+        if (typeof confetti !== 'function') return;
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000000 };
+
+        const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+    }
+
+    let lastAllDoneCelebration = 0;
+    function checkAllCompleted() {
+        // Only trigger if we have tasks and none of the non-subtasks are in todo/in-progress
+        const activeTasks = tasks.filter(t => t.status !== 'done' && !t.isSubtask);
+        if (tasks.length > 0 && activeTasks.length === 0) {
+            const now = Date.now();
+            if (now - lastAllDoneCelebration > 30000) { // 30s cooldown
+                setTimeout(() => {
+                    showToast("🏆 Incredible! You've cleared your entire board!", "success");
+                    triggerBigCelebration();
+                }, 600);
+                lastAllDoneCelebration = now;
+            }
+        }
+    }
 
     const motivationalMessages = [
         "Keep going! You're crushing it! 🚀",
@@ -958,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ...task,
                         id: `st-${task.id}-${st.id}`,
                         text: st.text,
-                        status: st.done ? 'done' : task.status,
+                        status: st.status || (st.done ? 'done' : 'todo'),
                         isSubtask: true,
                         originalTaskId: task.id,
                         subtaskId: st.id,
@@ -1303,7 +1393,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     pointHoverRadius: 8,
                     borderWidth: 4
                 }] 
-            } 
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
         });
 
         // Other charts stay based on CURRENT tasks (as they represent state, not history)
@@ -1506,17 +1612,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (parentTask) {
                     const isDone = (newStatus === 'done');
                     const updatedSubtasks = parentTask.subtasks.map(st => 
-                        st.id === stId ? { ...st, done: isDone } : st
+                        st.id === stId ? { ...st, done: isDone, status: newStatus } : st
                     );
-                    const allDone = updatedSubtasks.every(st => st.done);
-                    const anyDone = updatedSubtasks.some(st => st.done);
-                    
-                    let nextStatus = parentTask.status;
-                    if (allDone) nextStatus = 'done';
-                    else if (parentTask.status === 'done' && !allDone) nextStatus = 'in-progress';
-                    else if (anyDone && parentTask.status === 'todo') nextStatus = 'in-progress';
-                    
-                    db.collection('tasks').doc(parentId).update({ subtasks: updatedSubtasks, status: nextStatus });
+                    db.collection('tasks').doc(parentId).update({ subtasks: updatedSubtasks });
                 }
                 return;
             }
@@ -1526,8 +1624,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const updateData = {};
             const destListId = list.dataset.listId;
             if (destListId === 'todo-today') {
+                updateData.dueDate = new Date().toISOString().split('T')[0]; // Set to today's date
                 if (task.category !== 'general') updateData.category = 'general';
             } else if (destListId === 'todo-later') {
+                updateData.dueDate = null;
                 if (task.category !== 'daily') updateData.category = 'daily';
             }
             if (task.status !== newStatus) {
@@ -1563,6 +1663,9 @@ document.addEventListener('DOMContentLoaded', () => {
         colors.forEach(c => {
             if (c.dataset.color === savedColor) c.classList.add('active');
             c.addEventListener('click', () => {
+                if (window.activeTourAction === 'Change theme') {
+                    window.onTourInteraction();
+                }
                 colors.forEach(cc => cc.classList.remove('active')); c.classList.add('active');
                 const color = c.dataset.color; document.documentElement.style.setProperty('--primary-color', color); localStorage.setItem('accentColor', color);
             });

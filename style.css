@@ -514,11 +514,10 @@ button,
     padding: 12px 16px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: var(--input-bg);
+    background: color-mix(in srgb, var(--primary-color) 6%, var(--input-bg));
     color: var(--text-color);
-    font-size: 1rem;
     outline: none;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    font-size: 1rem;
 }
 
 .input-wrapper input:focus,
@@ -526,6 +525,7 @@ button,
 .priority-select:focus,
 .category-select:focus {
     border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 10%, var(--input-bg));
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
 }
 
@@ -615,12 +615,12 @@ button,
     padding: 0 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: var(--input-bg);
+    background: color-mix(in srgb, var(--primary-color) 6%, var(--input-bg));
     color: var(--text-color);
-    font-size: 0.9rem;
     outline: none;
-    cursor: pointer;
-    height: 44px;
+    font-size: 0.95rem;
+    height: 46px;
+    transition: all 0.3s ease;
 }
 
 .reminder-toggle {
@@ -1986,7 +1986,7 @@ button,
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 100000;
+    z-index: 100010 !important;
     transition: opacity 0.3s;
 }
 
@@ -1997,21 +1997,21 @@ button,
 
 .tour-overlay.active {
     opacity: 1;
-    pointer-events: auto;
+    pointer-events: none; /* Allow clicking through the dark background */
 }
 
 .tour-tooltip {
     position: absolute;
-    background: white;
-    color: black;
-    padding: 20px;
-    border-radius: 12px;
-    width: 280px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    margin-bottom: env(safe-area-inset-bottom);
-    z-index: 100010 !important;
-    /* Higher than .tour-highlight (100001) */
+    background: var(--container-bg);
+    color: var(--text-color);
+    padding: 24px;
+    border-radius: 16px;
+    border: 2px solid var(--primary-color);
+    width: 300px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 100020 !important;
+    pointer-events: auto;
 }
 
 #tour-text {
@@ -2046,10 +2046,11 @@ button,
 
 .tour-highlight {
     position: relative;
-    z-index: 100001 !important;
+    z-index: 100015 !important; /* Higher than overlay */
     background: var(--container-bg);
     box-shadow: 0 0 0 4px var(--primary-color);
     border-radius: 8px;
+    pointer-events: auto !important;
 }
 
 /* Full Toast Notification System */
