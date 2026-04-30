@@ -1904,25 +1904,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- App Reset Logic ---
     const resetBtn = document.getElementById('reset-app-btn');
     if (resetBtn) {
-        resetBtn.addEventListener('click', async () => {
-            if (!confirm("⚠️ DANGER: This will delete ALL your tasks and analysis history permanently! Are you sure?")) return;
-            
-            try {
-                showToast("Resetting app data...", "info");
-                const snapshot = await db.collection('tasks').get();
-                const batch = db.batch();
-                snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                
-                // Clear all local storage (analysis history, cumulative counts, etc.)
-                localStorage.clear();
-                
-                showToast("App data cleared. Reloading...", "success");
-                setTimeout(() => window.location.reload(), 1500);
-            } catch (err) {
-                console.error("Reset failed:", err);
-                showToast("Failed to reset data.", "error");
-            }
+        resetBtn.addEventListener('click', () => {
+            customConfirm("⚠️ DANGER: This will delete ALL your tasks and history permanently! Are you sure?", () => {
+                setTimeout(() => {
+                    customConfirm("FINAL WARNING: This is irreversible. Wipe everything now?", async () => {
+                        try {
+                            showToast("Wiping app data...", "info");
+                            const snapshot = await db.collection('tasks').get();
+                            const batch = db.batch();
+                            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                            await batch.commit();
+                            localStorage.clear();
+                            showToast("Data wiped. Restarting...", "success");
+                            setTimeout(() => window.location.reload(), 1500);
+                        } catch (err) {
+                            console.error("Reset failed:", err);
+                            showToast("Reset failed.", "error");
+                        }
+                    });
+                }, 400);
+            });
         });
     }
 
