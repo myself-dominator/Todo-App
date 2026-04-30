@@ -297,7 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSelectColor(dtCategory);
         
         const dtEarlyRemind = document.getElementById('dt-early-remind');
+        const dtEarlyRemindMins = document.getElementById('dt-early-remind-mins');
         if (dtEarlyRemind) dtEarlyRemind.checked = task.earlyRemind || false;
+        if (dtEarlyRemindMins) dtEarlyRemindMins.value = task.earlyRemindMins || 15;
         
         checkEarlyWarningVisibility();
         renderSubtasks(task);
@@ -350,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dtEarlyRemind = document.getElementById('dt-early-remind');
     if (dtEarlyRemind) {
         dtEarlyRemind.addEventListener('change', (e) => updateDetailField('earlyRemind', e.target.checked));
+    }
+    const dtEarlyRemindMins = document.getElementById('dt-early-remind-mins');
+    if (dtEarlyRemindMins) {
+        dtEarlyRemindMins.addEventListener('input', (e) => updateDetailField('earlyRemindMins', parseInt(e.target.value) || 15));
     }
 
     dtSubtaskAdd.addEventListener('click', addSubtask);
@@ -1854,13 +1860,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLocalNotification("Task Reminder 🔔", task.text);
             }
 
-            // 1.1 Early Warning (15m before)
+            // 1.1 Early Warning (Manual duration)
             if (task.earlyRemind && task.status !== 'done' && task.dueDate === nowStr && task.dueTime) {
-                const [h, m] = task.dueTime.split(':').map(Number);
-                const taskMinutes = h * 60 + m;
+                const [h, min] = task.dueTime.split(':').map(Number);
+                const taskMinutes = h * 60 + min;
                 const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                if (taskMinutes - nowMinutes === 15) {
-                    showLocalNotification("Early Warning ⏲️", `Upcoming: ${task.text} (in 15m)`);
+                const warningMins = parseInt(task.earlyRemindMins) || 15;
+                
+                if (taskMinutes - nowMinutes === warningMins) {
+                    showLocalNotification("Early Warning ⏲️", `Upcoming: ${task.text} (in ${warningMins}m)`);
                 }
             }
 
@@ -1909,25 +1917,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     customConfirm("FINAL WARNING: This is irreversible. Wipe everything now?", async () => {
                         try {
-                            showToast("Wiping app data...", "info");
+                            showToast("Initiating server wipe...", "info");
                             
-                            // Delete in chunks of 500 (Firestore batch limit)
-                            let snapshot = await db.collection('tasks').get();
-                            while (snapshot.size > 0) {
-                                const batch = db.batch();
-                                snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                                await batch.commit();
-                                snapshot = await db.collection('tasks').get();
+                            // Force retrieval from server to ensure no orphans are left in cache
+                            let snapshot = await db.collection('tasks').get({ source: 'server' });
+                            
+                            if (snapshot.empty) {
+                                showToast("No tasks found on server.", "info");
+                            } else {
+                                while (snapshot.size > 0) {
+                                    const batch = db.batch();
+                                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                                    await batch.commit();
+                                    snapshot = await db.collection('tasks').get({ source: 'server' });
+                                }
+                                showToast("All server tasks deleted.", "success");
                             }
                             
                             // Clear all local storage
                             localStorage.clear();
                             
-                            showToast("Data wiped. Restarting...", "success");
-                            setTimeout(() => window.location.reload(), 1500);
+                            // Clear indexedDB if persistence is on
+                            if (window.indexedDB) {
+                                const dbs = await window.indexedDB.databases();
+                                dbs.forEach(dbInfo => {
+                                    if (dbInfo.name.includes('firestore')) window.indexedDB.deleteDatabase(dbInfo.name);
+                                });
+                            }
+                            
+                            showToast("App data wiped successfully. Restarting...", "success");
+                            setTimeout(() => window.location.href = window.location.pathname + '?reset=' + Date.now(), 1500);
                         } catch (err) {
                             console.error("Reset failed:", err);
-                            showToast("Reset failed. Check connection.", "error");
+                            showToast("Reset failed. Please check internet.", "error");
                         }
                     });
                 }, 400);
