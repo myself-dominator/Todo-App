@@ -1910,16 +1910,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     customConfirm("FINAL WARNING: This is irreversible. Wipe everything now?", async () => {
                         try {
                             showToast("Wiping app data...", "info");
-                            const snapshot = await db.collection('tasks').get();
-                            const batch = db.batch();
-                            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-                            await batch.commit();
+                            
+                            // Delete in chunks of 500 (Firestore batch limit)
+                            let snapshot = await db.collection('tasks').get();
+                            while (snapshot.size > 0) {
+                                const batch = db.batch();
+                                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                                await batch.commit();
+                                snapshot = await db.collection('tasks').get();
+                            }
+                            
+                            // Clear all local storage
                             localStorage.clear();
+                            
                             showToast("Data wiped. Restarting...", "success");
                             setTimeout(() => window.location.reload(), 1500);
                         } catch (err) {
                             console.error("Reset failed:", err);
-                            showToast("Reset failed.", "error");
+                            showToast("Reset failed. Check connection.", "error");
                         }
                     });
                 }, 400);
