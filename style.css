@@ -2555,13 +2555,13 @@ button,
 }
 
 .analog-clock {
-    width: 100px;
-    height: 100px;
-    border: 3px solid var(--primary-color);
+    width: 130px;
+    height: 130px;
+    border: 3.5px solid var(--primary-color);
     border-radius: 50%;
     position: relative;
-    background: color-mix(in srgb, var(--primary-color) 5%, var(--container-bg));
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    background: color-mix(in srgb, var(--primary-color) 6%, var(--container-bg));
+    box-shadow: 0 6px 25px rgba(0,0,0,0.2);
 }
 
 .analog-clock .hand {
@@ -2574,25 +2574,25 @@ button,
 }
 
 .analog-clock .hour {
-    width: 4px;
-    height: 30%;
+    width: 5px;
+    height: 28%;
     background: var(--text-color);
     z-index: 3;
-    margin-left: -2px;
+    margin-left: -2.5px;
 }
 
 .analog-clock .minute {
-    width: 3px;
-    height: 40%;
+    width: 3.5px;
+    height: 38%;
     background: var(--text-color);
     z-index: 2;
-    margin-left: -1.5px;
+    margin-left: -1.75px;
 }
 
 .analog-clock .second {
     width: 2px;
-    height: 45%;
-    background: #ef4444; /* Standard red for second hand */
+    height: 44%;
+    background: #ef4444; 
     z-index: 1;
     margin-left: -1px;
 }
@@ -2601,13 +2601,13 @@ button,
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background: var(--primary-color);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     z-index: 10;
-    border: 1px solid white;
+    border: 1.5px solid white;
 }
 
 .clock-ampm {

@@ -1608,6 +1608,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (ampmEl) {
                 ampmEl.textContent = hours >= 12 ? 'PM' : 'AM';
+                
+                // Collision Detection: Only move if the HOUR hand is near 12 o'clock (340-20 deg)
+                // We ignore seconds/minutes for a more stable experience
+                const isHourOverlapping = (hourDegrees % 360) > 340 || (hourDegrees % 360) < 20;
+                ampmEl.classList.toggle('bottom', isHourOverlapping);
             }
 
             const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
