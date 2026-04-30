@@ -287,6 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Detail Panel ---
     function openDetailPanel(id) {
+        // Close date panel if open to prevent UI overlap
+        closeDatePanel();
+        
         const task = tasks.find(t => t.id === id);
         if (!task) return;
         activeDetailId = id;
@@ -318,6 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     dtTime.addEventListener('change', checkEarlyWarningVisibility);
+
+    document.getElementById('dt-delete-btn')?.addEventListener('click', () => {
+        if (activeDetailId) {
+            customConfirm("Are you sure you want to delete this task?", () => {
+                deleteTask(activeDetailId);
+                detailPanel.classList.remove('active');
+                activeDetailId = null;
+            });
+        }
+    });
 
     document.getElementById('close-detail').addEventListener('click', () => { detailPanel.classList.remove('active'); activeDetailId = null; });
 
@@ -570,31 +583,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const step = steps[stepIdx]; const targetEl = document.querySelector(step.target);
             if (!targetEl) { stepIdx++; showStep(); return; }
             tourText.textContent = step.text; tourTooltip.setAttribute('data-placement', step.placement);
-            const rect = targetEl.getBoundingClientRect();
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
-            // Smarter positioning to avoid off-screen
-            let top, left;
-            if (step.placement === 'bottom') {
-                top = rect.bottom + 15;
-                left = Math.max(10, Math.min(window.innerWidth - 290, rect.left));
-            } else {
-                top = rect.top - 180; // Larger gap for header
-                left = Math.max(10, Math.min(window.innerWidth - 290, rect.left + rect.width / 2 - 140));
-            }
+            // Wait for scroll to stabilize
+            setTimeout(() => {
+                const rect = targetEl.getBoundingClientRect();
+                let top, left;
+                if (step.placement === 'bottom') {
+                    top = rect.bottom + 15;
+                    left = Math.max(10, Math.min(window.innerWidth - 290, rect.left));
+                } else {
+                    top = rect.top - 180;
+                    left = Math.max(10, Math.min(window.innerWidth - 290, rect.left + rect.width / 2 - 140));
+                }
 
-            // Viewport boundary checks
-            if (top < 20) top = rect.bottom + 15; // Flip to bottom if off-screen top
-            if (top + 200 > window.innerHeight) top = rect.top - 180; // Flip to top if off-screen bottom
-            
-            tourTooltip.style.top = `${top}px`;
-            tourTooltip.style.left = `${left}px`;
+                if (top < 20) top = rect.bottom + 15;
+                if (top + 200 > window.innerHeight) top = rect.top - 180;
+                
+                tourTooltip.style.top = `${top}px`;
+                tourTooltip.style.left = `${left}px`;
 
-            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); targetEl.classList.add('tour-highlight');
+                document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); 
+                targetEl.classList.add('tour-highlight');
+            }, 500); // Increased delay for smoother transition
         }
 
-        function finishTour() { tourOverlay.classList.remove('active'); setTimeout(() => tourOverlay.classList.add('hidden'), 300); document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); localStorage.setItem('onboardingDone', 'true'); }
-        tourOverlay.classList.remove('hidden'); setTimeout(() => tourOverlay.classList.add('active'), 100); showStep();
-        document.getElementById('tour-next').addEventListener('click', () => { stepIdx++; showStep(); }); document.getElementById('tour-skip').addEventListener('click', finishTour);
+        function finishTour() { 
+            tourOverlay.classList.remove('active'); 
+            setTimeout(() => tourOverlay.classList.add('hidden'), 300); 
+            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight')); 
+            localStorage.setItem('onboardingDone', 'true'); 
+        }
+
+        tourOverlay.classList.remove('hidden'); 
+        setTimeout(() => tourOverlay.classList.add('active'), 100); 
+        showStep();
+
+        document.getElementById('tour-next').onclick = () => { stepIdx++; showStep(); };
+        document.getElementById('tour-skip').onclick = finishTour;
     }
 
     // --- Core Logic ---
@@ -1099,15 +1125,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shortcuts-btn')?.classList.add('panel-hidden');
         document.querySelector('.sidebar-footer')?.classList.add('panel-hidden');
         document.getElementById('close-detail')?.classList.add('panel-hidden');
+        document.getElementById('dt-delete-btn')?.classList.add('panel-hidden');
     }
 
     function renderDatePanelTasks(dateStr) {
         const container = document.getElementById('date-panel-tasks');
         if (!container) return;
         container.innerHTML = '';
-        const dayTasks = tasks.filter(t => t.dueDate && t.dueDate.startsWith(dateStr));
+        // Filter out completed tasks to only show active ones in the date view
+        const dayTasks = tasks.filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'done');
         if (dayTasks.length === 0) {
-            container.innerHTML = '<div class="date-panel-empty">No tasks yet — add one above!</div>';
+            container.innerHTML = '<div class="date-panel-empty">No active tasks for this day.</div>';
             return;
         }
         dayTasks.forEach(task => {
@@ -1134,6 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shortcuts-btn')?.classList.remove('panel-hidden');
         document.querySelector('.sidebar-footer')?.classList.remove('panel-hidden');
         document.getElementById('close-detail')?.classList.remove('panel-hidden');
+        document.getElementById('dt-delete-btn')?.classList.remove('panel-hidden');
     }
 
     function setupDatePanel() {
@@ -1172,15 +1201,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupDatePanel();
 
+    // --- Persistent Analytics Tracking ---
+    function getCompletionHistory() {
+        try {
+            return JSON.parse(localStorage.getItem('completionHistory') || '{}');
+        } catch(e) { return {}; }
+    }
+    function saveCompletionHistory(history) {
+        localStorage.setItem('completionHistory', JSON.stringify(history));
+    }
+    function logTaskCompletion(taskId) {
+        const todayKey = new Date().toDateString();
+        const history = getCompletionHistory();
+        if (!history[todayKey]) history[todayKey] = [];
+        if (!history[todayKey].includes(taskId)) {
+            history[todayKey].push(taskId);
+            saveCompletionHistory(history);
+        }
+    }
+
     function renderAnalytics() {
         if (typeof Chart === 'undefined') return;
 
-        // --- Persistent completion counter ---
-        // Track cumulative completions in localStorage so deleting done tasks doesn't reset the count
-        const currentDone = tasks.filter(t => t.status === 'done').length;
-        const storedMax = parseInt(localStorage.getItem('analyticsMaxDone') || '0', 10);
-        const lifetimeDone = Math.max(currentDone, storedMax);
-        localStorage.setItem('analyticsMaxDone', lifetimeDone);
+        const history = getCompletionHistory();
+        const todayKey = new Date().toDateString();
+        const todayDoneCumulative = (history[todayKey] || []).length;
+        
+        // Lifetime Done is the sum of all task IDs across all days in history
+        const allCompletedIds = new Set();
+        Object.values(history).forEach(ids => ids.forEach(id => allCompletedIds.add(id)));
+        const lifetimeDone = allCompletedIds.size;
 
         const activeTotal = tasks.filter(t => t.status !== 'done').length;
         const lifetimeTotal = lifetimeDone + activeTotal;
@@ -1193,18 +1243,19 @@ document.addEventListener('DOMContentLoaded', () => {
             prevRateValue = rate;
         }
 
-        let todayTotal = 0, todayDone = 0;
+        let todayActiveTotal = 0;
         const todayStr = new Date().toDateString();
         tasks.forEach(t => {
             if (t.dueDate) {
                 const parseStr = t.dueDate.includes('T') ? t.dueDate : t.dueDate + 'T00:00:00';
                 if (new Date(parseStr).toDateString() === todayStr || isTodayOrPast(t.dueDate)) {
-                    todayTotal++;
-                    if (t.status === 'done') todayDone++;
+                    if (t.status !== 'done') todayActiveTotal++;
                 }
             }
         });
-        const todayRate = todayTotal === 0 ? 0 : Math.round((todayDone / todayTotal) * 100);
+
+        const todayTotalOverall = todayDoneCumulative + todayActiveTotal;
+        const todayRate = todayTotalOverall === 0 ? 0 : Math.round((todayDoneCumulative / todayTotalOverall) * 100);
         const todayBadge = document.getElementById('today-completion-badge');
         if (todayBadge) {
             todayBadge.className = `rate-badge ${todayRate >= 80 ? 'green' : todayRate >= 50 ? 'amber' : 'red'}`;
@@ -1212,32 +1263,34 @@ document.addEventListener('DOMContentLoaded', () => {
             prevTodayRateValue = todayRate;
         }
 
-        // Delayed tasks calculation
-        const delayedCount = tasks.filter(t => t.status !== 'done' && t.dueDate && new Date(t.dueDate.includes('T') ? t.dueDate : t.dueDate + "T23:59:59") < new Date()).length;
-        const delayedBadge = document.getElementById('delayed-tasks-badge');
-        if (delayedBadge) {
-            delayedBadge.textContent = delayedCount;
-            delayedBadge.className = `rate-badge ${delayedCount === 0 ? 'green' : 'red'}`;
+        const remainingBadgeAnalytic = document.getElementById('remaining-tasks-badge-analytics');
+        if (remainingBadgeAnalytic) {
+            remainingBadgeAnalytic.textContent = tasks.filter(t => t.status !== 'done').length;
         }
 
-        const last7Days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toLocaleDateString('en-US', { weekday: 'short' }); }).reverse();
-        const completedCounts = [0, 0, 0, 0, 0, 0, 0];
-        tasks.filter(t => t.status === 'done' && t.completedAt).forEach(t => {
-            const d = new Date(t.completedAt), now = new Date(); now.setHours(23, 59, 59, 999);
-            const diffDays = Math.floor(Math.abs(now - d) / 86400000);
-            if (diffDays < 7 && diffDays >= 0) completedCounts[6 - diffDays]++;
-        });
+        const last7DaysLabels = Array.from({ length: 7 }, (_, i) => { 
+            const d = new Date(); d.setDate(d.getDate() - i); 
+            return d.toLocaleDateString('en-US', { weekday: 'short' }); 
+        }).reverse();
+        
+        const last7DaysKeys = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            return d.toDateString();
+        }).reverse();
 
-        const weeklyCtx = document.getElementById('weeklyChart').getContext('2d'); if (window.weeklyChartInst) window.weeklyChartInst.destroy();
-        const gradient = weeklyCtx.createLinearGradient(0, 0, 0, 400);
+        const completedCounts = last7DaysKeys.map(key => (history[key] || []).length);
+
+        const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+        if (window.weeklyChartInst) window.weeklyChartInst.destroy();
         const pColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+        const gradient = weeklyCtx.createLinearGradient(0, 0, 0, 400);
         gradient.addColorStop(0, pColor);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         window.weeklyChartInst = new Chart(weeklyCtx, { 
             type: 'line', 
             data: { 
-                labels: last7Days, 
+                labels: last7DaysLabels, 
                 datasets: [{ 
                     label: 'Efficiency', 
                     data: completedCounts, 
@@ -1250,23 +1303,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     pointHoverRadius: 8,
                     borderWidth: 4
                 }] 
-            }, 
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { stepSize: 1, color: '#94a3b8' } },
-                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
-                } 
             } 
         });
 
-        const priorityCtx = document.getElementById('priorityChart').getContext('2d'); if (window.priorityChartInst) window.priorityChartInst.destroy();
-        window.priorityChartInst = new Chart(priorityCtx, { type: 'doughnut', data: { labels: ['High', 'Medium', 'Low', 'None'], datasets: [{ data: [tasks.filter(t => t.priority === 'high' && t.status !== 'done').length, tasks.filter(t => t.priority === 'medium' && t.status !== 'done').length, tasks.filter(t => t.priority === 'low' && t.status !== 'done').length, tasks.filter(t => (t.priority === 'none' || !t.priority) && t.status !== 'done').length], backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#94a3b8'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } } });
+        // Other charts stay based on CURRENT tasks (as they represent state, not history)
+        const priorityCtx = document.getElementById('priorityChart').getContext('2d'); 
+        if (window.priorityChartInst) window.priorityChartInst.destroy();
+        window.priorityChartInst = new Chart(priorityCtx, { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['High', 'Medium', 'Low', 'None'], 
+                datasets: [{ 
+                    data: [
+                        tasks.filter(t => t.priority === 'high' && t.status !== 'done').length, 
+                        tasks.filter(t => t.priority === 'medium' && t.status !== 'done').length, 
+                        tasks.filter(t => t.priority === 'low' && t.status !== 'done').length, 
+                        tasks.filter(t => (t.priority === 'none' || !t.priority) && t.status !== 'done').length
+                    ], 
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#94a3b8'], 
+                    borderWidth: 0 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } } 
+        });
 
-        const statusCtx = document.getElementById('statusChart').getContext('2d'); if (window.statusChartInst) window.statusChartInst.destroy();
-        window.statusChartInst = new Chart(statusCtx, { type: 'doughnut', data: { labels: ['To Do', 'In Progress', 'Done'], datasets: [{ data: [tasks.filter(t => t.status === 'todo').length, tasks.filter(t => t.status === 'in-progress').length, tasks.filter(t => t.status === 'done').length], backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } } });
+        const statusCtx = document.getElementById('statusChart').getContext('2d'); 
+        if (window.statusChartInst) window.statusChartInst.destroy();
+        window.statusChartInst = new Chart(statusCtx, { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['To Do', 'In Progress', 'Done (Active)'], 
+                datasets: [{ 
+                    data: [
+                        tasks.filter(t => t.status === 'todo').length, 
+                        tasks.filter(t => t.status === 'in-progress').length, 
+                        tasks.filter(t => t.status === 'done').length
+                    ], 
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'], 
+                    borderWidth: 0 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } } 
+        });
     }
 
     function formatDate(dateStr) {
@@ -1448,16 +1526,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const updateData = {};
             const destListId = list.dataset.listId;
             if (destListId === 'todo-today') {
-                if (!task.dueDate || !isTodayOrPast(task.dueDate)) updateData.dueDate = new Date().toISOString().split('T')[0];
                 if (task.category !== 'general') updateData.category = 'general';
             } else if (destListId === 'todo-later') {
-                if (isTodayOrPast(task.dueDate)) updateData.dueDate = '';
                 if (task.category !== 'daily') updateData.category = 'daily';
             }
             if (task.status !== newStatus) {
                 updateData.status = newStatus;
-                if (newStatus === 'done') { updateData.completedAt = new Date().toISOString(); triggerSmallConfetti(dragEl); }
-                else updateData.completedAt = null;
+                  if (newStatus === 'done') { 
+                      updateData.completedAt = new Date().toISOString(); 
+                      logTaskCompletion(draggedId);
+                      triggerSmallConfetti(dragEl); 
+                  }
+                  else updateData.completedAt = null;
             }
             if (Object.keys(updateData).length > 0) {
                 db.collection('tasks').doc(draggedId).update(updateData)
@@ -1502,7 +1582,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 900);
 
         setTimeout(setupTour, 1200);
-        setupServiceWorker();
+    function setupSidebarTime() {
+        const hourHand = document.getElementById('hour-hand');
+        const minHand = document.getElementById('min-hand');
+        const secHand = document.getElementById('sec-hand');
+        const ampmEl = document.getElementById('clock-ampm');
+        const dateEl = document.getElementById('sidebar-date');
+        
+        if (!hourHand || !minHand || !secHand || !dateEl) return;
+
+        function update() {
+            const now = new Date();
+            
+            const seconds = now.getSeconds();
+            const secDegrees = ((seconds / 60) * 360);
+            secHand.style.transform = `rotate(${secDegrees}deg)`;
+
+            const mins = now.getMinutes();
+            const minDegrees = ((mins / 60) * 360) + ((seconds / 60) * 6);
+            minHand.style.transform = `rotate(${minDegrees}deg)`;
+
+            const hours = now.getHours();
+            const hourDegrees = ((hours / 12) * 360) + ((mins / 60) * 30);
+            hourHand.style.transform = `rotate(${hourDegrees}deg)`;
+
+            if (ampmEl) {
+                ampmEl.textContent = hours >= 12 ? 'PM' : 'AM';
+            }
+
+            const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            dateEl.textContent = dateStr;
+        }
+        
+        setInterval(update, 1000);
+        update();
+    }
+    setupSidebarTime();
+
+    setupServiceWorker();
     }
 
     function setupNotifications() {
@@ -1586,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetBtn = document.getElementById('reset-app-btn');
     if (resetBtn) {
         resetBtn.addEventListener('click', async () => {
-            if (!confirm("⚠️ DANGER: This will delete ALL your tasks permanently! Are you sure?")) return;
+            if (!confirm("⚠️ DANGER: This will delete ALL your tasks and analysis history permanently! Are you sure?")) return;
             
             try {
                 showToast("Resetting app data...", "info");
@@ -1595,8 +1712,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 snapshot.docs.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
                 
-                showToast("App data cleared successfully.", "success");
-                renderAll(); // Refresh view
+                // Clear all local storage (analysis history, cumulative counts, etc.)
+                localStorage.clear();
+                
+                showToast("App data cleared. Reloading...", "success");
+                setTimeout(() => window.location.reload(), 1500);
             } catch (err) {
                 console.error("Reset failed:", err);
                 showToast("Failed to reset data.", "error");

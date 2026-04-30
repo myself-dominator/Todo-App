@@ -1,9 +1,9 @@
 // ============================================================
-// Service Worker — 1.2.7.0
+// Service Worker — 1.2.9.7
 // Strategy: Cache-first, fallback to network
 // ============================================================
 
-const CACHE_NAME = '1.2.7.0';
+const CACHE_NAME = '1.2.9.7';
 
 const ASSETS_TO_CACHE = [
     '/',

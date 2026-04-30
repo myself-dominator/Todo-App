@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-color: #f3f4f6;
+    --bg-color: color-mix(in srgb, var(--primary-color) 8%, #f3f4f6);
     --container-bg: #ffffff;
     --text-color: #1f2937;
     --text-muted: #6b7280;
@@ -13,11 +13,11 @@
     --item-hover: rgba(255, 255, 255, 0.8);
     --shadow: 0 8px 30px color-mix(in srgb, var(--primary-color) 15%, rgba(0, 0, 0, 0.1));
     --overdue-color: #ef4444;
-    --kanban-bg: rgba(248, 250, 252, 0.5);
+    --kanban-bg: color-mix(in srgb, var(--primary-color) 4%, rgba(248, 250, 252, 0.5));
 }
 
 [data-theme="dark"] {
-    --bg-color: #0f172a;
+    --bg-color: color-mix(in srgb, var(--primary-color) 10%, #0f172a);
     --container-bg: #1e293b;
     --text-color: #f1f5f9;
     --text-muted: #94a3b8;
@@ -29,7 +29,7 @@
     --item-hover: rgba(255, 255, 255, 0.12);
     --shadow: 0 8px 30px color-mix(in srgb, var(--primary-color) 10%, rgba(0, 0, 0, 0.5));
     --overdue-color: #ef4444;
-    --kanban-bg: rgba(15, 23, 42, 0.5);
+    --kanban-bg: color-mix(in srgb, var(--primary-color) 5%, rgba(15, 23, 42, 0.5));
     color-scheme: dark;
 }
 
@@ -183,9 +183,17 @@ button,
 }
 
 @keyframes installPulse {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 #install-btn:hover {
@@ -202,6 +210,7 @@ button,
     #install-btn .install-label {
         display: none;
     }
+
     #install-btn {
         padding: 8px;
     }
@@ -291,13 +300,10 @@ button,
 .app-title {
     font-size: 1.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--text-color), var(--primary-color));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent; /* standard fallback for -webkit-text-fill-color */
+    color: var(--primary-color);
     text-align: center;
     width: 100%;
+    margin-bottom: 0.5rem;
 }
 
 .nav-links {
@@ -381,8 +387,15 @@ button,
 }
 
 @keyframes badgePop {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 
@@ -405,6 +418,31 @@ button,
     z-index: 1000;
 }
 
+#tour-next {
+    background: var(--primary-color);
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    animation: tourPulse 2s infinite;
+}
+
+@keyframes tourPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    }
+}
+
 .shortcuts-fab {
     position: fixed;
     bottom: 25px;
@@ -417,7 +455,7 @@ button,
     border-radius: 50%;
     font-size: 1.4rem;
     cursor: pointer;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -427,7 +465,7 @@ button,
 
 .shortcuts-fab:hover {
     transform: scale(1.1) rotate(10deg);
-    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
 }
 
 .theme-btn {
@@ -584,6 +622,7 @@ button,
     cursor: pointer;
     height: 44px;
 }
+
 .reminder-toggle {
     display: flex;
     align-items: center;
@@ -683,7 +722,8 @@ button,
 
 /* Detail Panel - Spacious Fixed Right Overlay */
 .detail-panel {
-    width: 480px; /* Slightly wider for better breathing room */
+    width: 480px;
+    /* Slightly wider for better breathing room */
     max-width: 100%;
     background: rgba(15, 23, 42, 0.9);
     backdrop-filter: blur(30px) saturate(200%);
@@ -720,7 +760,8 @@ button,
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 25px; /* Increased gap between sections */
+    gap: 25px;
+    /* Increased gap between sections */
 }
 
 .dt-row {
@@ -759,7 +800,8 @@ button,
 /* Kanban Board Spacing */
 .kanban-board {
     display: flex;
-    gap: 30px; /* Increased from 20px */
+    gap: 30px;
+    /* Increased from 20px */
     flex: 1;
     overflow-x: auto;
     padding: 10px 5px;
@@ -771,7 +813,8 @@ button,
     border-radius: 20px;
     display: flex;
     flex-direction: column;
-    padding: 20px; /* Increased padding */
+    padding: 20px;
+    /* Increased padding */
     gap: 15px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -795,7 +838,8 @@ button,
 }
 
 .dt-notes {
-    min-height: 180px; /* More space for notes */
+    min-height: 180px;
+    /* More space for notes */
     resize: vertical;
     line-height: 1.6;
 }
@@ -927,11 +971,11 @@ button,
     transition: 0.3s;
 }
 
-.custom-toggle input:checked + .toggle-slider {
+.custom-toggle input:checked+.toggle-slider {
     background: var(--primary-color);
 }
 
-.custom-toggle input:checked + .toggle-slider::before {
+.custom-toggle input:checked+.toggle-slider::before {
     transform: translateX(14px);
 }
 
@@ -1170,7 +1214,7 @@ button,
     text-align: left;
     flex: 1;
     min-width: 200px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1223,7 +1267,7 @@ button,
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 25px;
     border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .chart-box h3 {
@@ -1249,7 +1293,8 @@ button,
     overflow: hidden;
     border-radius: 12px;
     margin-bottom: 0;
-    flex-shrink: 0; /* Prevents overlapping/squashing */
+    flex-shrink: 0;
+    /* Prevents overlapping/squashing */
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -1326,17 +1371,15 @@ button,
     box-shadow: 0 0 0 2px var(--primary-color);
 }
 
-/* Left Borders for Priority */
-.task-container.priority-high {
-    border-left-color: #ef4444;
+/* Unified Theme Accent for Tasks */
+.task-container {
+    border-left: 4px solid var(--primary-color) !important;
 }
 
-.task-container.priority-medium {
-    border-left-color: #f59e0b;
-}
-
+.task-container.priority-high,
+.task-container.priority-medium,
 .task-container.priority-low {
-    border-left-color: #10b981;
+    border-left-color: var(--primary-color);
 }
 
 @keyframes cascadeIn {
@@ -1433,9 +1476,11 @@ button,
 .task-main {
     display: flex;
     align-items: center;
-    padding: 16px; /* Slightly more padding */
+    padding: 16px;
+    /* Slightly more padding */
     gap: 12px;
-    min-height: 60px; /* Ensure minimum height */
+    min-height: 60px;
+    /* Ensure minimum height */
 }
 
 
@@ -1549,6 +1594,48 @@ button,
     border-color: var(--primary-color) !important;
     font-size: 0.6rem !important;
     letter-spacing: 0.5px;
+}
+
+.sub-header {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    margin: 15px 0 10px 0;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--container-bg) 95%, transparent);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#list-todo-today {
+    overflow-y: auto;
+    min-height: 140px; /* Space for 2 tasks when empty */
+    max-height: 280px; /* Scroll after ~4 tasks */
+    padding: 5px;
+    scroll-behavior: smooth;
+    flex: none; /* Only takes what it needs up to max-height */
+}
+
+#list-todo-later {
+    overflow-y: auto;
+    flex: 1; /* Fills all remaining space in the column */
+    min-height: 100px;
+    padding: 5px;
+    scroll-behavior: smooth;
+}
+
+.kanban-scroll-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden !important;
 }
 
 .progress-text {
@@ -1923,6 +2010,8 @@ button,
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     margin-bottom: env(safe-area-inset-bottom);
+    z-index: 100010 !important;
+    /* Higher than .tour-highlight (100001) */
 }
 
 #tour-text {
@@ -1979,7 +2068,7 @@ button,
     position: relative;
     padding: 16px 20px;
     border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1991,14 +2080,32 @@ button,
     animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.toast-success { background: linear-gradient(135deg, #10b981, #059669); }
-.toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
-.toast-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.toast-info { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.toast-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
 
-@keyframes toast-in { 
-    from { transform: translateX(100%) scale(0.9); opacity: 0; } 
-    to { transform: translateX(0) scale(1); opacity: 1; } 
+.toast-error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.toast-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.toast-info {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateX(100%) scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
 }
 
 .app-toast.leaving {
@@ -2138,9 +2245,9 @@ button,
     background: var(--container-bg);
     padding: 35px;
     border-radius: 28px;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     width: 400px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
     transform: scale(0.8);
     opacity: 0;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -2238,7 +2345,8 @@ kbd {
         padding: 1rem;
         height: auto;
         flex: 1;
-        overflow-y: auto; /* Changed from hidden to allow scroll */
+        overflow-y: auto;
+        /* Changed from hidden to allow scroll */
         -webkit-overflow-scrolling: touch;
     }
 
@@ -2284,11 +2392,13 @@ kbd {
 
     .kanban-col {
         min-height: 100px;
-        min-width: 85vw; /* Keep desktop style side-by-side */
+        min-width: 85vw;
+        /* Keep desktop style side-by-side */
         flex: none;
     }
-    
-    .kanban-list, .kanban-scroll-area {
+
+    .kanban-list,
+    .kanban-scroll-area {
         flex: 1;
         overflow-y: auto;
     }
@@ -2331,16 +2441,18 @@ kbd {
         position: fixed;
         right: -100%;
         z-index: 2000;
-        background: var(--container-bg); /* Use solid color on mobile for readability */
+        background: var(--container-bg);
+        /* Use solid color on mobile for readability */
         backdrop-filter: none;
     }
-    
+
     .detail-panel.active {
         right: 0;
     }
 
     .badge-pill {
-        color: white !important; /* Ensure visibility */
+        color: white !important;
+        /* Ensure visibility */
     }
 
     .dt-row label {
@@ -2349,11 +2461,15 @@ kbd {
 }
 
 /* Global Button Visibility Fixes */
-button, .nav-btn, .action-btn {
+button,
+.nav-btn,
+.action-btn {
     color: var(--text-color);
 }
 
-#add-button, .badge-pill, .toast-action {
+#add-button,
+.badge-pill,
+.toast-action {
     color: white !important;
 }
 
@@ -2378,6 +2494,7 @@ button, .nav-btn, .action-btn {
     user-select: none;
     font-size: 0.9rem;
 }
+
 .custom-select {
     padding: 10px 15px;
     border-radius: 12px;
@@ -2387,9 +2504,21 @@ button, .nav-btn, .action-btn {
     transition: all 0.2s ease;
     border: 1px solid transparent;
 }
-.custom-select.bg-high { background-color: #ef4444; border-color: #dc2626; }
-.custom-select.bg-medium { background-color: #f59e0b; border-color: #d97706; }
-.custom-select.bg-low { background-color: #10b981; border-color: #059669; }
+
+.custom-select.bg-high {
+    background-color: #ef4444;
+    border-color: #dc2626;
+}
+
+.custom-select.bg-medium {
+    background-color: #f59e0b;
+    border-color: #d97706;
+}
+
+.custom-select.bg-low {
+    background-color: #10b981;
+    border-color: #059669;
+}
 
 .custom-options {
     position: absolute;
@@ -2403,10 +2532,127 @@ button, .nav-btn, .action-btn {
     flex-direction: column;
     padding: 0;
     gap: 6px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
 }
+
 .custom-options.hidden {
-    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    display: flex;
+    /* Keep flex but hide with opacity/transform */
 }
+
+/* Analog Clock Styling */
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.analog-clock {
+    width: 100px;
+    height: 100px;
+    border: 3px solid var(--primary-color);
+    border-radius: 50%;
+    position: relative;
+    background: color-mix(in srgb, var(--primary-color) 5%, var(--container-bg));
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.analog-clock .hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    border-radius: 4px;
+    transition: transform 0.05s cubic-bezier(0.1, 2.7, 0.58, 1);
+}
+
+.analog-clock .hour {
+    width: 4px;
+    height: 30%;
+    background: var(--text-color);
+    z-index: 3;
+    margin-left: -2px;
+}
+
+.analog-clock .minute {
+    width: 3px;
+    height: 40%;
+    background: var(--text-color);
+    z-index: 2;
+    margin-left: -1.5px;
+}
+
+.analog-clock .second {
+    width: 2px;
+    height: 45%;
+    background: #ef4444; /* Standard red for second hand */
+    z-index: 1;
+    margin-left: -1px;
+}
+
+.analog-clock .center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    border: 1px solid white;
+}
+
+.clock-ampm {
+    position: absolute;
+    top: 25%; /* Default Top position */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 5;
+}
+
+.clock-ampm.bottom {
+    top: 65%; /* Flip to bottom when hands overlap top */
+}
+
+.sidebar-date {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 4px 12px;
+    border-radius: 8px;
+}
+
+/* Input Animations */
+.dt-input {
+    transition: all 0.2s ease;
+}
+
+.dt-input:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dt-input:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 .custom-option {
     padding: 10px 15px;
     border-radius: 8px;
@@ -2414,13 +2660,43 @@ button, .nav-btn, .action-btn {
     color: white;
     text-align: center;
     transition: transform 0.1s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
-.custom-option.bg-high, .custom-select.bg-high { background-color: #ef4444; border-color: #dc2626; }
-.custom-option.bg-medium, .custom-select.bg-medium { background-color: #f59e0b; border-color: #d97706; }
-.custom-option.bg-low, .custom-select.bg-low { background-color: #10b981; border-color: #059669; }
-.custom-option.bg-general, .custom-select.bg-general { background-color: #6366f1; border-color: #4f46e5; }
-.custom-option.bg-daily, .custom-select.bg-daily { background-color: #8b5cf6; border-color: #7c3aed; }
+
+.custom-option.bg-high,
+.custom-select.bg-high {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: white;
+}
+
+.custom-option.bg-medium,
+.custom-select.bg-medium {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+}
+
+.custom-option.bg-low,
+.custom-select.bg-low {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.custom-option.bg-general,
+.custom-select.bg-general {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    color: white;
+}
+
+.custom-option.bg-daily,
+.custom-select.bg-daily {
+    background-color: #8b5cf6;
+    border-color: #8b5cf6;
+    color: white;
+}
 
 .custom-option:hover {
     transform: scale(0.98);
@@ -2439,7 +2715,7 @@ button, .nav-btn, .action-btn {
     font-size: 0.65rem;
     font-weight: 700;
     color: var(--primary-color);
-    background: rgba(99,102,241,0.12);
+    background: rgba(99, 102, 241, 0.12);
     border-radius: 6px;
     padding: 2px 6px;
     margin-top: 2px;
@@ -2449,17 +2725,23 @@ button, .nav-btn, .action-btn {
 
 /* ── Date Task Panel ──────────────────────────────────── */
 .date-panel-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     z-index: 1200;
     transition: opacity 0.25s ease;
 }
-.date-panel-overlay.hidden { display: none; }
+
+.date-panel-overlay.hidden {
+    display: none;
+}
 
 .date-panel {
     position: fixed;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     max-height: 80vh;
     background: var(--kanban-bg);
     border-radius: 28px 28px 0 0;
@@ -2468,16 +2750,27 @@ button, .nav-btn, .action-btn {
     flex-direction: column;
     padding: 24px 20px 32px;
     gap: 18px;
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.35);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.35);
     transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.date-panel.hidden { display: none; }
-.date-panel.sliding-in { animation: slidePanelUp 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+.date-panel.hidden {
+    display: none;
+}
+
+.date-panel.sliding-in {
+    animation: slidePanelUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
 
 @keyframes slidePanelUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 .date-panel-header {
@@ -2485,33 +2778,43 @@ button, .nav-btn, .action-btn {
     justify-content: space-between;
     align-items: center;
 }
+
 .date-panel-label {
     font-size: 1.4rem;
     font-weight: 800;
     color: var(--text-color);
 }
+
 .date-panel-subtitle {
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 3px;
 }
+
 .date-panel-close {
     background: var(--input-bg);
     border: none;
     color: var(--text-color);
-    width: 36px; height: 36px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     font-size: 1rem;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background 0.2s;
 }
-.date-panel-close:hover { background: var(--border-color); }
+
+.date-panel-close:hover {
+    background: var(--border-color);
+}
 
 .date-panel-add {
     display: flex;
     gap: 10px;
 }
+
 .date-panel-add input {
     flex: 1;
     padding: 12px 16px;
@@ -2523,7 +2826,11 @@ button, .nav-btn, .action-btn {
     outline: none;
     transition: border-color 0.2s;
 }
-.date-panel-add input:focus { border-color: var(--primary-color); }
+
+.date-panel-add input:focus {
+    border-color: var(--primary-color);
+}
+
 .date-panel-add button {
     padding: 12px 22px;
     border-radius: 14px;
@@ -2535,7 +2842,10 @@ button, .nav-btn, .action-btn {
     font-size: 0.95rem;
     transition: filter 0.2s;
 }
-.date-panel-add button:hover { filter: brightness(1.15); }
+
+.date-panel-add button:hover {
+    filter: brightness(1.15);
+}
 
 .date-panel-tasks {
     overflow-y: auto;
@@ -2544,6 +2854,7 @@ button, .nav-btn, .action-btn {
     gap: 10px;
     max-height: 45vh;
 }
+
 .date-panel-task-item {
     display: flex;
     align-items: center;
@@ -2555,30 +2866,52 @@ button, .nav-btn, .action-btn {
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 }
-.date-panel-task-item:hover { border-color: var(--primary-color); background: rgba(99,102,241,0.06); }
-.date-panel-task-item.done-task { opacity: 0.5; text-decoration: line-through; }
+
+.date-panel-task-item:hover {
+    border-color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.date-panel-task-item.done-task {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
 .dpt-priority-dot {
-    width: 10px; height: 10px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
-.dpt-priority-dot.high  { background: #ef4444; }
-.dpt-priority-dot.medium{ background: #f59e0b; }
-.dpt-priority-dot.low   { background: #10b981; }
+
+.dpt-priority-dot.high {
+    background: #ef4444;
+}
+
+.dpt-priority-dot.medium {
+    background: #f59e0b;
+}
+
+.dpt-priority-dot.low {
+    background: #10b981;
+}
+
 .dpt-text {
     flex: 1;
     font-size: 0.95rem;
     color: var(--text-color);
 }
+
 .dpt-status {
     font-size: 0.75rem;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 8px;
-    background: rgba(255,255,255,0.07);
+    background: rgba(255, 255, 255, 0.07);
     color: var(--text-muted);
     text-transform: capitalize;
 }
+
 .date-panel-empty {
     text-align: center;
     color: var(--text-muted);
@@ -2588,7 +2921,9 @@ button, .nav-btn, .action-btn {
 
 @media (min-width: 769px) {
     .date-panel {
-        left: auto; right: 24px; bottom: 24px;
+        left: auto;
+        right: 24px;
+        bottom: 24px;
         width: 380px;
         border-radius: 24px;
         max-height: 75vh;
