@@ -280,14 +280,23 @@ button,
 }
 
 .sidebar {
-    width: 250px;
+    width: 280px;
     background: var(--input-bg);
-    padding: 2rem 1rem;
+    padding: 3rem 1.5rem 2rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 10px;
     border-right: 1px solid var(--border-color);
-    z-index: 5;
+    z-index: 100;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
 
 .sidebar-header {
@@ -309,7 +318,7 @@ button,
 .nav-links {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
 }
 
 .nav-btn {
@@ -499,6 +508,10 @@ button,
     gap: 10px;
     margin-bottom: 1.5rem;
     align-items: center;
+    background-color: color-mix(in srgb, var(--primary-color) 4%, var(--container-bg));
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 12%, var(--border-color));
 }
 
 .input-wrapper {
@@ -2046,11 +2059,24 @@ button,
 
 .tour-highlight {
     position: relative;
-    z-index: 100015 !important; /* Higher than overlay */
-    background: var(--container-bg);
-    box-shadow: 0 0 0 4px var(--primary-color);
-    border-radius: 8px;
+    z-index: 100015 !important;
     pointer-events: auto !important;
+    box-shadow: 0 0 0 10px var(--primary-color), 0 0 50px 20px rgba(255, 255, 255, 0.4) !important;
+    border-radius: 8px;
+    animation: tour-pulse 2s infinite;
+}
+
+/* Ensure parent containers don't block the highlight */
+.sidebar.tour-active-parent,
+.input-section.tour-active-parent {
+    z-index: 100011 !important;
+    position: relative;
+}
+
+@keyframes tour-pulse {
+    0% { box-shadow: 0 0 0 0 var(--primary-color), 0 0 30px 10px rgba(255, 255, 255, 0.3); }
+    70% { box-shadow: 0 0 0 15px transparent, 0 0 60px 25px rgba(255, 255, 255, 0.5); }
+    100% { box-shadow: 0 0 0 0 transparent, 0 0 30px 10px rgba(255, 255, 255, 0.3); }
 }
 
 /* Full Toast Notification System */
@@ -2188,6 +2214,30 @@ button,
 
 .toast-success {
     border-bottom: 2px solid #10b981;
+}
+
+.toast-success .toast.task-done {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+    border-left: 5px solid rgba(255, 255, 255, 0.4);
+}
+
+.toast.all-done {
+    background: linear-gradient(135deg, var(--primary-color), #4f46e5);
+    color: white;
+    padding: 20px 30px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    animation: toast-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: bottom center;
+}
+
+@keyframes toast-entrance {
+    from { transform: translateY(100%) scale(0.8); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .toast-success .toast-progress {
@@ -2556,13 +2606,13 @@ button,
 }
 
 .analog-clock {
-    width: 130px;
-    height: 130px;
-    border: 3.5px solid var(--primary-color);
+    width: 90px;
+    height: 90px;
+    border: 3px solid var(--primary-color);
     border-radius: 50%;
     position: relative;
-    background: color-mix(in srgb, var(--primary-color) 6%, var(--container-bg));
-    box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+    background: color-mix(in srgb, var(--primary-color) 4%, var(--container-bg));
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
 }
 
 .analog-clock .hand {

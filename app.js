@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let deletedTask = null, deletedTaskIndex = -1;
 
     let initialLoad = true;
+    let todayRateCelebrated = false;
     let prevRateValue = 0;
     let prevTodayRateValue = 0;
     let allDoneCelebrated = false;
@@ -367,6 +368,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!text || !activeDetailId) return;
         const task = tasks.find(t => t.id === activeDetailId);
         if (!task) return;
+
+        // Duplicate Prevention
+        const isDuplicate = (task.subtasks || []).some(st => st.text.toLowerCase() === text.toLowerCase());
+        if (isDuplicate) {
+            showToast("This step already exists!", "error");
+            return;
+        }
+
         const subtasks = [...(task.subtasks || [])];
         subtasks.push({ id: Date.now().toString(), text, done: false, status: 'todo' });
         db.collection('tasks').doc(activeDetailId).update({ subtasks })
@@ -579,8 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const steps = [
             { target: null, text: "Welcome to MY Tasks! 👋 Let's get you set up in 3 quick steps.", action: 'Click Start', placement: 'center' },
             { target: '#new-task', text: "Step 1: Try typing a task and clicking '+' to add it.", action: 'Add a task', placement: 'bottom' },
-            { target: '.theme-selector', text: "Step 2: Great! Now try clicking a color dot to change the theme.", action: 'Change theme', placement: 'top' },
-            { target: '.nav-btn[data-view="analytics-view"]', text: "Step 3: Finally, check your productivity analytics here.", action: 'View Analytics', placement: 'top' }
+            { target: '.theme-dots', text: "Step 2: Great! Now try clicking a color dot to change the theme.", action: 'Change theme', placement: 'right' },
+            { target: '.nav-btn[data-view="analytics-view"]', text: "Step 3: Finally, check your productivity analytics here.", action: 'View Analytics', placement: 'right' }
         ];
         let stepIdx = 0;
         let activeListener = null;
@@ -608,25 +617,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetEl) {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+                document.querySelectorAll('.tour-active-parent').forEach(el => el.classList.remove('tour-active-parent'));
+                
                 targetEl.classList.add('tour-highlight');
+                const parentBox = targetEl.closest('.sidebar, .input-section');
+                if (parentBox) parentBox.classList.add('tour-active-parent');
                 
                 // Position tooltip dynamically
                 setTimeout(() => {
                     const rect = targetEl.getBoundingClientRect();
                     const tooltipWidth = 300; 
-                    const tooltipHeight = tourTooltip.offsetHeight || 150;
-                    
-                    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-                    left = Math.max(20, Math.min(window.innerWidth - tooltipWidth - 20, left));
+                    const tooltipHeight = tourTooltip.offsetHeight;
+                    let left, top;
+                    const spacing = 25;
 
-                    let top;
-                    if (step.placement === 'top') {
-                        top = rect.top - tooltipHeight - 25;
-                        if (top < 20) top = rect.bottom + 25;
+                    if (step.placement === 'right') {
+                        left = rect.right + spacing;
+                        top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+                    } else if (step.placement === 'left') {
+                        left = rect.left - tooltipWidth - spacing;
+                        top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
+                    } else if (step.placement === 'top') {
+                        left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                        top = rect.top - tooltipHeight - spacing;
                     } else {
-                        top = rect.bottom + 25;
-                        if (top + tooltipHeight > window.innerHeight - 20) top = rect.top - tooltipHeight - 25;
+                        // Default Bottom
+                        left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                        top = rect.bottom + spacing;
                     }
+
+                    // Constrain to viewport
+                    left = Math.max(20, Math.min(window.innerWidth - tooltipWidth - 20, left));
+                    top = Math.max(20, Math.min(window.innerHeight - tooltipHeight - 20, top));
 
                     tourTooltip.style.top = `${top}px`;
                     tourTooltip.style.left = `${left}px`;
@@ -785,6 +807,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addTask() {
         const text = taskInput.value.trim(); if (text === '') return;
+        
+        // Duplicate Prevention
+        const isDuplicate = tasks.some(t => t.text.toLowerCase() === text.toLowerCase());
+        if (isDuplicate) {
+            showToast("A task with this name already exists!", "error");
+            return;
+        }
+
         let dVal = dueDateInput.value;
         const tVal = dueTimeInput.value;
         
@@ -842,6 +872,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newStatus === 'done') {
                 element.classList.add('done');
                 triggerSmallConfetti(element);
+                
+                // Show celebratory toast
+                const msgs = ["Great job!", "One step closer!", "You nailed it!", "Keep it up!", "Solid progress!"];
+                const msg = msgs[Math.floor(Math.random() * msgs.length)];
+                showToast(`✅ ${msg}`, "task-done");
+
                 const cbWrapper = element.querySelector('.svg-checkbox-wrapper');
                 if (cbWrapper) {
                     const ripple = document.createElement('div');
@@ -885,15 +921,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastAllDoneCelebration = 0;
     function checkAllCompleted() {
-        // Only trigger if we have tasks and none of the non-subtasks are in todo/in-progress
-        const activeTasks = tasks.filter(t => t.status !== 'done' && !t.isSubtask);
-        if (tasks.length > 0 && activeTasks.length === 0) {
+        // Determine completion based on Today's Tasks and In Progress columns
+        const todayOrInProgress = tasks.filter(t => {
+            if (t.status === 'done') return false;
+            if (t.status === 'in-progress') return true;
+            if (t.status === 'todo') {
+                // Same logic as renderKanban listKey determination
+                if (t.dueDate && isTodayOrPast(t.dueDate)) return true;
+                if (t.category === 'general') return true;
+            }
+            return false;
+        });
+
+        if (tasks.length > 0 && todayOrInProgress.length === 0) {
             const now = Date.now();
             if (now - lastAllDoneCelebration > 30000) { // 30s cooldown
                 setTimeout(() => {
-                    showToast("🏆 Incredible! You've cleared your entire board!", "success");
+                    showToast("🏆 INCREDIBLE! You've conquered today's board!", "all-done");
                     triggerBigCelebration();
-                }, 600);
+                }, 800);
                 lastAllDoneCelebration = now;
             }
         }
@@ -950,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveTasks() { /* No-op: replaced by Firestore */ }
     function setupFirestore() {
-        db.collection('tasks').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+        db.collection('tasks').onSnapshot(snapshot => {
             tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             // Auto-pin overdue tasks (done once per sync)
@@ -1013,24 +1059,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function sortTasks(taskArr) {
         const priorityMap = { 'high': 3, 'medium': 2, 'low': 1, 'none': 0 };
         return [...taskArr].sort((a, b) => {
-            // 1. Done tasks to the bottom
+            // 1. Status (Done at bottom)
             const aDone = a.status === 'done', bDone = b.status === 'done';
             if (aDone !== bDone) return aDone ? 1 : -1;
 
-            // 2. Sort by Group Priority (Parent's priority)
-            const aP = priorityMap[a.priority] || 0;
-            const bP = priorityMap[b.priority] || 0;
-            if (aP !== bP) return bP - aP;
+            // 2. Sort by sortDate (Manual/Creation order)
+            const getMillis = (d) => {
+                if (!d) return Date.now();
+                if (d.toMillis) return d.toMillis();
+                if (d.seconds) return d.seconds * 1000;
+                return new Date(d).getTime() || Date.now();
+            };
+            const aTime = getMillis(a.sortDate);
+            const bTime = getMillis(b.sortDate);
+            if (aTime !== bTime) return bTime - aTime;
 
-            // 3. Sort by Group Date (Parent's creation time)
-            const aDate = a.sortDate?.seconds || 0;
-            const bDate = b.sortDate?.seconds || 0;
-            if (aDate !== bDate) return bDate - aDate;
-
-            // 4. Within the same group (parent + its subtasks), 
-            // subtasks (groupOrder 0) come before the parent (groupOrder 1)
+            // 3. Subtasks (groupOrder 0) before Parent (groupOrder 1)
             if (a.groupOrder !== b.groupOrder) return a.groupOrder - b.groupOrder;
-
+            
             return 0;
         });
     }
@@ -1049,6 +1095,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         id: `st-${task.id}-${st.id}`,
                         text: st.text,
                         status: st.status || (st.done ? 'done' : 'todo'),
+                        dueDate: st.dueDate !== undefined ? st.dueDate : task.dueDate,
+                        category: st.category !== undefined ? st.category : task.category,
                         isSubtask: true,
                         originalTaskId: task.id,
                         subtaskId: st.id,
@@ -1232,11 +1280,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = `date-panel-task-item ${task.status === 'done' ? 'done-task' : ''}`;
             item.innerHTML = `
-                <div class="dpt-priority-dot ${task.priority || 'medium'}"></div>
-                <div class="dpt-text">${task.text}</div>
-                <div class="dpt-status">${task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done ✓' : 'To Do'}</div>
+                <div class="dpt-main" style="flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <div class="dpt-priority-dot ${task.priority || 'medium'}"></div>
+                    <div class="dpt-text">${task.text}</div>
+                    <div class="dpt-status">${task.status === 'in-progress' ? 'In Progress' : task.status === 'done' ? 'Done' : 'To Do'}</div>
+                </div>
+                <button class="dpt-delete-btn" title="Delete Task" style="background: none; border: none; color: #ef4444; padding: 8px; cursor: pointer; border-radius: 4px; transition: 0.2s;">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                </button>
             `;
-            item.addEventListener('click', () => { openDetailPanel(task.id); });
+            
+            item.querySelector('.dpt-main').addEventListener('click', () => { openDetailPanel(task.id); });
+            item.querySelector('.dpt-delete-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                customConfirm("Delete this task?", () => {
+                    deleteTask(task.id);
+                    item.style.opacity = '0.5';
+                    item.style.pointerEvents = 'none';
+                });
+            });
+            
             container.appendChild(item);
         });
     }
@@ -1351,6 +1414,17 @@ document.addEventListener('DOMContentLoaded', () => {
             todayBadge.className = `rate-badge ${todayRate >= 80 ? 'green' : todayRate >= 50 ? 'amber' : 'red'}`;
             countUp(todayBadge, prevTodayRateValue, todayRate, 400, '%');
             prevTodayRateValue = todayRate;
+        }
+
+        // Instant Celebration for 100% Today
+        if (todayRate === 100 && todayTotalOverall > 0 && !todayRateCelebrated) {
+            todayRateCelebrated = true;
+            setTimeout(() => {
+                showToast("🎖️ PERFECT DAY! 100% Daily Goal Achieved!", "all-done");
+                triggerBigCelebration();
+            }, 100);
+        } else if (todayRate < 100) {
+            todayRateCelebrated = false; // Reset if they add more tasks
         }
 
         const remainingBadgeAnalytic = document.getElementById('remaining-tasks-badge-analytics');
@@ -1611,9 +1685,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parentTask = tasks.find(t => t.id === parentId);
                 if (parentTask) {
                     const isDone = (newStatus === 'done');
-                    const updatedSubtasks = parentTask.subtasks.map(st => 
-                        st.id === stId ? { ...st, done: isDone, status: newStatus } : st
-                    );
+                    const updatedSubtasks = parentTask.subtasks.map(st => {
+                        if (st.id === stId) {
+                            const updated = { ...st, done: isDone, status: newStatus };
+                            // Handle Today vs Other for subtasks
+                            if (destListId === 'todo-today') {
+                                updated.dueDate = new Date().toISOString().split('T')[0];
+                                updated.category = 'general';
+                            } else if (destListId === 'todo-later') {
+                                updated.dueDate = null;
+                                updated.category = 'daily';
+                            }
+                            return updated;
+                        }
+                        return st;
+                    });
                     db.collection('tasks').doc(parentId).update({ subtasks: updatedSubtasks });
                 }
                 return;
@@ -1621,7 +1707,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const task = tasks.find(t => t.id === draggedId);
             if (!task) return;
-            const updateData = {};
+            const updateData = { sortDate: firebase.firestore.FieldValue.serverTimestamp() };
             const destListId = list.dataset.listId;
             if (destListId === 'todo-today') {
                 updateData.dueDate = new Date().toISOString().split('T')[0]; // Set to today's date
@@ -1632,12 +1718,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (task.status !== newStatus) {
                 updateData.status = newStatus;
-                  if (newStatus === 'done') { 
-                      updateData.completedAt = new Date().toISOString(); 
-                      logTaskCompletion(draggedId);
-                      triggerSmallConfetti(dragEl); 
-                  }
-                  else updateData.completedAt = null;
+                
+                // Sync Subtasks with Parent Status
+                if (task.subtasks && task.subtasks.length > 0) {
+                    updateData.subtasks = task.subtasks.map(st => ({
+                        ...st,
+                        done: (newStatus === 'done'),
+                        status: newStatus
+                    }));
+                }
+
+                if (newStatus === 'done') { 
+                    updateData.completedAt = new Date().toISOString(); 
+                    logTaskCompletion(draggedId);
+                    triggerSmallConfetti(dragEl); 
+                }
+                else updateData.completedAt = null;
             }
             if (Object.keys(updateData).length > 0) {
                 db.collection('tasks').doc(draggedId).update(updateData)
@@ -1726,9 +1822,8 @@ document.addEventListener('DOMContentLoaded', () => {
         update();
     }
     setupSidebarTime();
-
     setupServiceWorker();
-    }
+}
 
     function setupNotifications() {
         if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
