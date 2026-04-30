@@ -149,25 +149,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker
-                .register('/service-worker.js')
-                .then((registration) => {
-                    console.log('[App] Service Worker registered. Scope:', registration.scope);
-
-                    if (registration.waiting) {
-                        promptUpdate(registration.waiting);
-                    }
-
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                promptUpdate(newWorker);
-                            }
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js?v=1.3.3.2')
+                    .then(reg => {
+                        console.log('SW registered');
+                        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                            });
                         });
-                    });
-                })
-                .catch((err) => console.error('[App] SW registration failed:', err));
+                    })
+                    .catch(err => console.log('SW failed', err));
+            });
 
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -176,11 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.reload();
             });
         }
-    }
-
-    function promptUpdate(worker) {
-        // Auto-update without prompt
-        worker.postMessage({ type: 'SKIP_WAITING' });
     }
 
     taskInput.addEventListener('focus', () => {
@@ -996,6 +988,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveTasks() { /* No-op: replaced by Firestore */ }
     function setupFirestore() {
+        // Enable Offline Persistence for 100% reliable cross-device sync
+        if (typeof firebase !== 'undefined') {
+            db.enablePersistence().catch(err => {
+                console.warn('Persistence check:', err.code);
+            });
+        }
+
         db.collection('tasks').onSnapshot(snapshot => {
             tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
