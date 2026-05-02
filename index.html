@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MY Tasks">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>MY Tasks</title>
+    <link rel="stylesheet" href="style.css?v=1.3.4.0">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <!-- Firebase compat CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8Kx9S0o8J-p7647VwL8U9y-9Z4X0U-oU",
+            authDomain: "dominator-myself.firebaseapp.com",
+            projectId: "dominator-myself",
+            storageBucket: "dominator-myself.appspot.com",
+            messagingSenderId: "963254222441",
+            appId: "1:963254222441:web:8f3bd9c0846a04ccd4acf8"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script> <!-- App dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Splash Screen -->
+    <div id="splash">
+        <img src="icons/icon-192.png" alt="App Icon" class="splash-icon">
+        <h1 class="splash-title">MY Tasks</h1>
+    </div>
+
+
+
+    <!-- Floating Utility Buttons -->
+    <div class="top-utility-bar">
+        <button id="theme-toggle-btn" class="theme-btn">🌙 Dark</button>
+    </div>
+    <button id="shortcuts-btn" class="shortcuts-fab" title="Keyboard Shortcuts">⌨️</button>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 class="app-title">MY Tasks</h2>
+            </div>
+
+            <div class="nav-links">
+                <button class="nav-btn active" data-view="kanban-view">📝 Tasks</button>
+                <button class="nav-btn" data-view="analytics-view">📊 Analysis</button>
+                <button class="nav-btn" data-view="calendar-view">🗓️ Calendar</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="clock-container">
+                    <div class="analog-clock">
+                        <div class="hand hour" id="hour-hand"></div>
+                        <div class="hand minute" id="min-hand"></div>
+                        <div class="hand second" id="sec-hand"></div>
+                        <div id="clock-ampm" class="clock-ampm"></div>
+                        <div class="center-dot"></div>
+                    </div>
+                    <div id="sidebar-date" class="sidebar-date"></div>
+                </div>
+                <div class="theme-dots">
+                    <div class="color-dot active" data-color="#6366f1" style="background:#6366f1"></div>
+                    <div class="color-dot" data-color="#f43f5e" style="background:#f43f5e"></div>
+                    <div class="color-dot" data-color="#8b5cf6" style="background:#8b5cf6"></div>
+                    <div class="color-dot" data-color="#0ea5e9" style="background:#0ea5e9"></div>
+                    <div class="color-dot" data-color="#ff69b4" style="background:#ff69b4"></div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <!-- Global Input Section -->
+            <div class="input-section" id="input-section">
+                <div class="input-wrapper">
+                    <input type="text" id="new-task" placeholder="What needs to be done? (Ctrl+Enter)">
+                    <div id="typing-indicator" class="typing-indicator hidden">
+                        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    </div>
+                    <button id="mic-btn" class="mic-btn" title="Voice Input">🎤</button>
+                </div>
+                <input type="date" id="due-date" class="due-date-input" title="Due Date">
+                <input type="time" id="due-time" class="due-date-input" title="Time (Optional)">
+                <div class="custom-select-wrapper" id="priority-wrapper" style="width: 130px; display: inline-block;">
+                    <div class="custom-select bg-medium" id="priority-select-display">Medium</div>
+                    <div class="custom-options hidden">
+                        <div class="custom-option bg-high" data-value="high">High</div>
+                        <div class="custom-option bg-medium" data-value="medium">Medium</div>
+                        <div class="custom-option bg-low" data-value="low">Low</div>
+                    </div>
+                    <input type="hidden" id="priority-select" value="medium">
+                </div>
+                <div class="custom-select-wrapper" id="category-wrapper" style="width: 120px; display: inline-block;">
+                    <div class="custom-select bg-daily" id="category-select-display">Daily</div>
+                    <div class="custom-options hidden">
+                        <div class="custom-option bg-general" data-value="general">Today</div>
+                        <div class="custom-option bg-daily" data-value="daily">Daily</div>
+                    </div>
+                    <input type="hidden" id="category-select" value="daily">
+                </div>
+                <button id="add-button" class="add-btn">Add Task</button>
+            </div>
+
+            <div class="main-content-split">
+                <!-- View Container -->
+                <div class="views-container" id="views-container">
+                    <!-- VIEW 1: Kanban -->
+                    <div id="kanban-view" class="view-panel active">
+                        <div class="kanban-board" id="kanban-board">
+                            <div class="kanban-col">
+                                <div class="col-header todo-header">📌 To Do</div>
+                                <div class="kanban-scroll-area">
+                                    <div class="sub-header">🟡 TODAY'S TASKS</div>
+                                    <div class="kanban-list" id="list-todo-today" data-status="todo"
+                                        data-list-id="todo-today"></div>
+                                    <div class="sub-header">🗓️ OTHER TASKS</div>
+                                    <div class="kanban-list" id="list-todo-later" data-status="todo"
+                                        data-list-id="todo-later"></div>
+                                </div>
+                            </div>
+                            <div class="kanban-col">
+                                <div class="col-header prog-header">⏳ In Progress</div>
+                                <div class="kanban-list" id="list-in-progress" data-status="in-progress"
+                                    data-list-id="in-progress"></div>
+                            </div>
+                            <div class="kanban-col">
+                                <div class="col-header done-header"
+                                    style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>✅ Done</span>
+                                    <button id="clear-done-btn" class="icon-btn" title="Clear Completed Tasks"
+                                        style="font-size: 1.1rem; color: var(--text-muted); cursor: pointer; border: none; background: transparent;">🗑️</button>
+                                </div>
+                                <div class="kanban-list" id="list-done" data-status="done" data-list-id="done"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: Calendar -->
+                    <div id="calendar-view" class="view-panel expandable-content">
+                        <div class="calendar-header">
+                            <button id="prev-month" class="cal-nav-btn">&lt;</button>
+                            <h2 id="month-year-display">April 2026</h2>
+                            <button id="next-month" class="cal-nav-btn">&gt;</button>
+                        </div>
+                        <div id="calendar-grid" class="calendar-grid"></div>
+                    </div>
+
+                    <!-- VIEW 3: Analytics -->
+                    <div id="analytics-view" class="view-panel expandable-content">
+                        <div class="analytics-grid" id="analytics-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Detail Panel -->
+                <div id="detail-panel" class="detail-panel">
+                    <div class="dt-header">
+                        <span class="dt-label">Task Details</span>
+                        <button id="dt-close" class="icon-btn">✕</button>
+                    </div>
+                    <div class="dt-row">
+                        <label>Title</label>
+                        <input type="text" id="dt-title" class="dt-input" placeholder="Task title">
+                    </div>
+                    <div class="dt-row">
+                        <label>Notes</label>
+                        <textarea id="dt-notes" class="dt-input" placeholder="Add notes..." rows="3"></textarea>
+                    </div>
+                    <div class="dt-row">
+                        <label>Due Date</label>
+                        <div style="display: flex; gap: 8px; flex: 1;">
+                            <input type="date" id="dt-date" class="dt-input" style="flex: 1;">
+                            <input type="time" id="dt-time" class="dt-input" style="flex: 1;">
+                        </div>
+                    </div>
+                    <div class="dt-row">
+                        <label>Remind At</label>
+                        <div style="display: flex; gap: 8px; flex: 1;">
+                            <input type="time" id="dt-remind-time" class="dt-input"
+                                style="flex: 1; border:none; background:transparent;">
+                        </div>
+                        <!-- Proactive 15m Warning moved here for convenience -->
+
+                    </div>
+                </div>
+
+                <div class="dt-row">
+                    <label>Priority</label>
+                    <div class="custom-select-wrapper" id="dt-priority-wrapper" style="flex: 1;">
+                        <div class="custom-select bg-medium" id="dt-priority-display">Medium</div>
+                        <div class="custom-options hidden">
+                            <div class="custom-option bg-high" data-value="high">High</div>
+                            <div class="custom-option bg-medium" data-value="medium">Medium</div>
+                            <div class="custom-option bg-low" data-value="low">Low</div>
+                        </div>
+                        <input type="hidden" id="dt-priority" value="medium">
+                    </div>
+                </div>
+                <div class="dt-row">
+                    <label>Category</label>
+                    <div class="custom-select-wrapper" id="dt-category-wrapper" style="flex: 1;">
+                        <div class="custom-select bg-low" id="dt-category-display">Today</div>
+                        <div class="custom-options hidden">
+                            <div class="custom-option bg-low" data-value="general">Today</div>
+                            <div class="custom-option bg-medium" data-value="daily">Daily</div>
+                        </div>
+                        <input type="hidden" id="dt-category" value="general">
+                    </div>
+                </div>
+
+                <div class="dt-row subtasks-section">
+                    <label>Break down this task</label>
+                    <div class="subtask-input-wrapper">
+                        <input type="text" id="dt-subtask-input" class="dt-input" placeholder="Add a step...">
+                        <button id="dt-subtask-add" class="icon-btn">＋</button>
+                    </div>
+                    <div id="dt-subtasks-list" class="dt-subtasks-list"></div>
+                </div>
+
+                <div class="dt-row"
+                    style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <button id="dt-delete-btn" class="bulk-btn delete"
+                        style="width: 100%; justify-content: center; gap: 8px; border-radius: 12px; padding: 14px;">
+                        🗑️ Delete Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile FAB & Bottom Sheet -->
+    <button id="fab-add" class="fab">＋</button>
+    <div id="bottom-sheet-overlay" class="bottom-sheet-overlay"></div>
+    <div id="bottom-sheet" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div id="mobile-input-container"></div>
+    </div>
+
+    <!-- Onboarding Tour -->
+    <div id="tour-overlay" class="tour-overlay hidden">
+        <div class="tour-tooltip" id="tour-tooltip">
+            <p id="tour-text">Welcome! Add your first task here.</p>
+            <div class="tour-actions">
+                <button id="tour-skip">Skip</button>
+                <button id="tour-next">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Action Bar -->
+    <div id="bulk-action-bar" class="bulk-action-bar hidden">
+        <span id="bulk-count">0 tasks selected</span>
+        <button id="bulk-complete" class="bulk-btn">Done</button>
+        <button id="bulk-delete" class="bulk-btn delete">Delete</button>
+        <button id="bulk-cancel" class="bulk-btn cancel">Cancel</button>
+    </div>
+
+    <!-- Hover Preview Card -->
+    <div id="hover-preview" class="hover-preview hidden">
+        <div class="hp-title" id="hp-title"></div>
+        <div class="hp-date" id="hp-date"></div>
+        <div class="hp-notes" id="hp-notes"></div>
+    </div>
+
+    <!-- Emoji Picker -->
+    <div id="emoji-picker" class="emoji-picker hidden">
+        <span class="emoji-opt">🔥</span>
+        <span class="emoji-opt">🚀</span>
+        <span class="emoji-opt">⭐</span>
+        <span class="emoji-opt">😴</span>
+        <span class="emoji-opt">👀</span>
+        <span class="emoji-opt clear-emoji">❌</span>
+    </div>
+
+    <!-- Shortcuts Modal -->
+    <div id="shortcuts-modal" class="shortcuts-modal hidden">
+        <div class="shortcuts-content">
+            <div class="shortcuts-header">
+                <h3>App Shortcuts</h3>
+                <button id="close-shortcuts" class="icon-btn">×</button>
+            </div>
+            <ul class="shortcuts-list">
+                <li><kbd>Ctrl</kbd> + <kbd>Enter</kbd> <span>Focus Input / Add Task</span></li>
+                <li><kbd>Enter</kbd> <span>Add Task (when focused)</span></li>
+                <li><kbd>Ctrl</kbd> + <kbd>Click</kbd> <span>Select Multiple Tasks</span></li>
+                <li><kbd>Hover</kbd> <span>Preview Task (500ms)</span></li>
+                <li><kbd>Swipe</kbd> <span>Complete/Delete (Mobile)</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirm-modal" class="shortcuts-modal hidden">
+        <div class="shortcuts-content" style="width: 320px; text-align: center;">
+            <div class="shortcuts-header" style="justify-content: center; margin-bottom: 15px;">
+                <h3 style="color: var(--overdue-color);">Confirm Deletion</h3>
+            </div>
+            <p id="confirm-message" style="margin-bottom: 25px; font-size: 0.95rem; color: var(--text-color);"></p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="confirm-cancel" class="bulk-btn cancel" style="flex: 1;">Cancel</button>
+                <button id="confirm-yes" class="bulk-btn delete" style="flex: 1;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Task Panel -->
+    <div id="date-panel-overlay" class="date-panel-overlay hidden"></div>
+    <div id="date-panel" class="date-panel hidden">
+        <div class="date-panel-header">
+            <div>
+                <div id="date-panel-label" class="date-panel-label"></div>
+                <div id="date-panel-subtitle" class="date-panel-subtitle"></div>
+            </div>
+            <button id="date-panel-close" class="date-panel-close">✕</button>
+        </div>
+
+        <div class="date-panel-add">
+            <input type="text" id="date-panel-input" placeholder="Add a task for this day…" autocomplete="off">
+            <button id="date-panel-add-btn">Add</button>
+        </div>
+
+        <div id="date-panel-tasks" class="date-panel-tasks"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
