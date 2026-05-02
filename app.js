@@ -296,11 +296,26 @@ document.addEventListener('DOMContentLoaded', () => {
         dtCategory.value = task.category || 'general';
         updateSelectColor(dtCategory);
         
+        const dtEarlyRemind = document.getElementById('dt-early-remind');
+        const dtEarlyRemindMins = document.getElementById('dt-early-remind-mins');
+        if (dtEarlyRemind) dtEarlyRemind.checked = task.earlyRemind || false;
+        if (dtEarlyRemindMins) dtEarlyRemindMins.value = task.earlyRemindMins || 15;
+        
+        checkEarlyWarningVisibility();
         renderSubtasks(task);
         detailPanel.classList.add('active');
     }
 
+    function checkEarlyWarningVisibility() {
+        const earlyWarningRow = document.getElementById('early-warning-row');
+        if (dtTime.value) {
+            earlyWarningRow.style.display = 'block';
+        } else {
+            earlyWarningRow.style.display = 'none';
+        }
+    }
 
+    dtTime.addEventListener('change', checkEarlyWarningVisibility);
 
     document.getElementById('dt-delete-btn')?.addEventListener('click', () => {
         if (activeDetailId) {
@@ -325,6 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dtCategory.addEventListener('change', (e) => updateDetailField('category', e.target.value));
     dtTime.addEventListener('change', (e) => {
         updateDetailField('dueTime', e.target.value);
+        checkEarlyWarningVisibility();
     });
     dtRemindTime.addEventListener('change', (e) => updateDetailField('remindTime', e.target.value));
     dtPriority.addEventListener('change', (e) => {
@@ -337,7 +353,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dtEarlyRemind) {
         dtEarlyRemind.addEventListener('change', (e) => updateDetailField('earlyRemind', e.target.checked));
     }
-
+    const dtEarlyRemindMins = document.getElementById('dt-early-remind-mins');
+    if (dtEarlyRemindMins) {
+        dtEarlyRemindMins.addEventListener('input', (e) => updateDetailField('earlyRemindMins', parseInt(e.target.value) || 15));
+    }
 
     dtSubtaskAdd.addEventListener('click', addSubtask);
     dtSubtaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addSubtask(); });
@@ -1841,7 +1860,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLocalNotification("Task Reminder 🔔", task.text);
             }
 
-
+            // 1.1 Early Warning (Manual duration)
+            if (task.earlyRemind && task.status !== 'done' && task.dueDate === nowStr && task.dueTime) {
+                const [h, min] = task.dueTime.split(':').map(Number);
+                const taskMinutes = h * 60 + min;
+                const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                const warningMins = parseInt(task.earlyRemindMins) || 15;
+                
+                if (taskMinutes - nowMinutes === warningMins) {
+                    showLocalNotification("Early Warning ⏲️", `Upcoming: ${task.text} (in ${warningMins}m)`);
+                }
+            }
 
             // 1.2 Subtask Reminders
             if (task.subtasks) {
